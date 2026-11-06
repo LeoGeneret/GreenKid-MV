@@ -58,3 +58,5 @@ tex_dirty_upload	on
 op_mode	handheld
 # The launcher's Resolution row (DM_RES_PRESET): Normal = romfs_overlay <mode>/, Potato = potato-<mode>/ (960x540 upscaled), graphics scale tier 2 (hle_oe.c gfx_scale)
 res_presets	on
+# The touch controls' Forest colours: blue A, green B, yellow X / Y, red +, deep green shoulders, bronze D-pad, gold rims, all translucent (DmGamepad.m theme_init)
+pad_theme	forest
