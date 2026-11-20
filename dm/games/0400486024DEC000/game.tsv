@@ -55,3 +55,9 @@ tex_dirty_upload	on
 op_mode	handheld
 # The launcher's Resolution row (DM_RES_PRESET): Normal = romfs_overlay <mode>/, Potato = potato-<mode>/ (960x540 upscaled), graphics scale tier 2 (hle_oe.c gfx_scale)
 res_presets	on
+# GreenKid-MV: the launcher's Render scale (Resolution: Render scale, DM_RES_PRESET=2), through the render-scale stub (patches.py render_scale, v131072). The slider is a fraction of
+# the output, 1920x1080 handheld and 2560x1440 docked; twelfths, so every step is a whole 16:9 size: 0.5 = 960x540 (Potato's 3D size), 0.667 = 1280x720 (Normal's), 1.0 = 1920x1080
+render_base	2560x1440 1920x1080
+render_scale	0.5:1.0:0.0833333333
+render_scale_default	0.75
+render_scale_marks	0.5=Potato,0.6666667=Normal,1.0=Native

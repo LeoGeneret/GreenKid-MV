@@ -30,7 +30,8 @@ struct Setting: Decodable, Identifiable {
         default: return true
         }
     }
-    enum CodingKeys: String, CodingKey { case env, kind, label, note, def = "default", section, needs, level, base, options, min, max, step, on, off }
+    let marks: [[String]]?   // range: [value, label] names for values (GreenKid-MV: Ocarina of Time's Potato, Normal and Native render scales; from kid-with-sword-remake)
+    enum CodingKeys: String, CodingKey { case env, kind, label, note, def = "default", section, needs, level, base, options, min, max, step, marks, on, off }
 }
 struct SettingsFile: Decodable { let settings: [Setting] }
 
@@ -95,7 +96,9 @@ final class LauncherModel: ObservableObject {
         guard let b = s.base else { return p }
         let size = (values["DM_OPMODE"] ?? "1") == "0" ? b.handheld : b.docked
         guard size.count == 2 else { return p }
-        return "\(Int((Double(size[0]) * v).rounded())) × \(Int((Double(size[1]) * v).rounded())) (\(p))"
+        let px = "\(Int((Double(size[0]) * v).rounded())) × \(Int((Double(size[1]) * v).rounded())) (\(p))"
+        if let name = s.marks?.first(where: { $0.count == 2 && abs((Double($0[0]) ?? -1) - v) < 0.001 })?[1] { return px + " · \(name)" }
+        return px
     }
     var changed: Bool { settings.contains { !fixed.contains($0.env) && !$0.isDefault(values[$0.env] ?? $0.def) } }
 

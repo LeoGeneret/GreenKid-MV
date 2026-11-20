@@ -26,6 +26,7 @@
         "min": {"description": "range: the lowest value.", "type": "number"},
         "max": {"description": "range: the highest value.", "type": "number"},
         "step": {"description": "range: the step between values.", "type": "number"},
+        "marks": {"description": "range, Render scale only: named values the front end shows beside the value when the slider is on one, from the game's profile (render_scale_marks); absent for most games.", "type": "array", "items": {"type": "array", "items": {"type": "string"}, "minItems": 2, "maxItems": 2}},
         "on": {"description": "toggle: the value the switch takes when on.", "type": "string"},
         "off": {"description": "toggle: the value the switch takes when off.", "type": "string"},
         "base": {"description": "Render scale only: the 3D views' size the scale multiplies, docked and handheld, from the game's profile; absent for most games.", "type": "object", "required": ["docked", "handheld"],

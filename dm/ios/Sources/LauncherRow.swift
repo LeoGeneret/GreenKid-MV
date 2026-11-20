@@ -17,7 +17,7 @@ struct SettingRow: View {
     }
     private var rangeValue: Binding<Double> {
         Binding(get: { Double(m.values[s.env] ?? s.def) ?? s.max ?? 1 },
-                set: { m.values[s.env] = String(format: "%.2f", $0) })
+                set: { m.values[s.env] = String(format: "%.4f", $0) })   // GreenKid-MV: 4 decimals, so a twelfth step stays on its whole size (0.6667 of 1920x1080 = 1280x720, not 0.67)
     }
     private var percentage: String { m.rangeLabel(s, rangeValue.wrappedValue) }
 
