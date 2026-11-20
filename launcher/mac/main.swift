@@ -5,7 +5,6 @@ import Foundation
 final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     var window: NSWindow!
     let folder = NSTextField(string: "")
-    let performance = NSButton(checkboxWithTitle: "Prefer the lighter Zelda performance preset (960×540, upscaled)", target: nil, action: nil)
     let log = NSTextView()
     let status = NSTextField(labelWithString: "Choose a folder containing your own game dump.")
     let build = NSButton(title: "Build My Local Game", target: nil, action: nil)
@@ -38,7 +37,6 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         choose.target = self; choose.action = #selector(chooseFolder)
         build.target = self; build.action = #selector(startBuild)
         reveal.target = self; reveal.action = #selector(showOutput); reveal.isEnabled = false
-        performance.state = .on
         let row = NSStackView(views: [folder, choose]); row.orientation = .horizontal
         folder.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let buttons = NSStackView(views: [build, reveal]); buttons.orientation = .horizontal
@@ -52,7 +50,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         scroll.documentView = log
         let credits = NSTextField(wrappingLabelWithString: "Engine: seedds / nxnative · Ocarina fork: cheemu21 / kid-with-sword-remake · Full contributors and licences are included under Documentation.")
         credits.font = .systemFont(ofSize: 11)
-        let stack = NSStackView(views: [title, subtitle, row, performance, buttons, status, scroll, credits])
+        let stack = NSStackView(views: [title, subtitle, row, buttons, status, scroll, credits])
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 13
         stack.translatesAutoresizingMaskIntoConstraints = false
         let content = window.contentView!
@@ -93,7 +91,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
-        task.arguments = [script.path, "--build", folder.stringValue, performance.state == .on ? "performance" : "normal"]
+        task.arguments = [script.path, "--build", folder.stringValue]
         let pipe = Pipe()
         task.standardOutput = pipe; task.standardError = pipe
         task.standardInput = FileHandle.nullDevice
