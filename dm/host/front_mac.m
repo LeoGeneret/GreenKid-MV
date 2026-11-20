@@ -18,8 +18,6 @@
 #include "dm_input.h"
 #include "front.h"
 #include "hle.h"
-#include <sys/sysctl.h>
-#import <IOKit/IOKitLib.h>
 #include "pad_slots.h"
 #include "haptics_apple.h"
 #include "motion_apple.h"
@@ -733,7 +731,7 @@ static void *guest_tramp(void *p) {
 }
 
 // Metal reads MTL_HUD_ENABLED when the process makes its first device, which can be before the window: set from DM_METAL_HUD before main (set in front_run, the HUD did not show)
-// Bowshot: the HUD is made available to every run so View > Show Metal HUD (⌥⌘P) can show it in play; the layer keeps it hidden unless DM_METAL_HUD is on
+// Bowshot: the HUD is made available to every run so View > Show Performance HUD (⌥⌘P) can show it in play; the layer keeps it hidden unless DM_METAL_HUD is on
 // (developerHUDProperties mode disabled, see the window below). An explicit MTL_HUD_ENABLED in the environment wins
 __attribute__((constructor)) static void hud_env(void) { front_hud_env(); setenv("MTL_HUD_ENABLED", "1", 0); setenv("MTL_HUD_HIDE_METALFX_METRICS", "1", 0); }
 
@@ -817,166 +815,42 @@ static void cheats_open_folder(void) {
     if (dir && *dir) { mkdir(dir, 0755); [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:@(dir)]]; }
 }
 
-// ---------- Bowshot: the View menu: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-) ----------
-// The panel, at the window's top left over the game: the frames shown a second, the mean frame time, the GPU time of the last frames (mtl_gpu_ms), the 3D size and its Render scale
-// step (named from the profile's marks: Potato, Normal, Native) and the game's upscaler. A step of the render scale (loader.c dm_render_scale_step) shows it for
-// 3 s when it is hidden, and is kept as the launcher's choice (launcher.DM_RENDER_SCALE, as the settings window saves it) for the next start. Shown or not is kept too
-#ifndef DM_GAME_RENDER_SCALE_MARKS   // a header from game.py before these keys
-#define DM_GAME_RENDER_SCALE_MARKS ""
-#endif
-#ifndef DM_GAME_UPSCALER_DEFAULT
-#define DM_GAME_UPSCALER_DEFAULT "game"
-#endif
-#ifndef DM_GAME_RENDER_SCALE_DEFAULT
+// ---------- Bowshot: the View menu: Apple's Metal HUD, named Performance HUD (⌥⌘P), and the render scale while the game runs (⌘= / ⌘-) ----------
+// A step of the render scale (loader.c dm_render_scale_step) takes effect at the next frame and is kept as the launcher's choice (launcher.DM_RENDER_SCALE, as the settings
+// window saves it) for the next start; the HUD's choice is the settings window's Performance HUD (launcher.DM_METAL_HUD)
+#ifndef DM_GAME_RENDER_SCALE_DEFAULT   // a header from game.py before the key
 #define DM_GAME_RENDER_SCALE_DEFAULT 1.0f
 #endif
-#ifndef DM_GAME_RENDER_BASE_DOCKED_W
-#define DM_GAME_RENDER_BASE_DOCKED_W 0
-#define DM_GAME_RENDER_BASE_DOCKED_H 0
-#define DM_GAME_RENDER_BASE_HANDHELD_W 0
-#define DM_GAME_RENDER_BASE_HANDHELD_H 0
-#endif
-uint64_t mtl_present_count(void);
-double mtl_gpu_ms(uint64_t f);
-uint64_t dm_nvn_frame_count(void);
 int dm_render_scale_state(float *now);
 int dm_render_scale_step(int dir, float *now);
-static NSString *perf_mark(float v) {   // the profile's name for a scale (render_scale_marks), or nil
-    for (NSString *m in [@(DM_GAME_RENDER_SCALE_MARKS) componentsSeparatedByString:@","]) {
-        NSArray<NSString *> *kv = [m componentsSeparatedByString:@"="];
-        if (kv.count == 2 && fabs(kv[0].doubleValue - v) < 0.001) return kv[1];
-    }
-    return nil;
-}
-static NSString *perf_size(float v) {   // the 3D size at scale v for the console mode, "1280×720", or nil without the profile's render_base
-    int dock = dm_opmode() == 1, w = dock ? DM_GAME_RENDER_BASE_DOCKED_W : DM_GAME_RENDER_BASE_HANDHELD_W, h = dock ? DM_GAME_RENDER_BASE_DOCKED_H : DM_GAME_RENDER_BASE_HANDHELD_H;
-    return w && h ? [NSString stringWithFormat:@"%ld×%ld", lround(w * v), lround(h * v)] : nil;
-}
-// The Mac the game runs on, read once: its model's name ("MacBook Pro (14-inch, Nov 2023)", IODeviceTree:/product's product-name on Apple silicon; hw.model otherwise), macOS,
-// the chip, the memory, and the GPU as Metal names it with its core count (the AGXAccelerator's gpu-core-count)
-static NSString *perf_machine(void) {
-    static NSString *s;
-    if (s) return s;
-    char model[128] = "", chip[128] = ""; size_t n = sizeof model; sysctlbyname("hw.model", model, &n, NULL, 0);
-    n = sizeof chip; sysctlbyname("machdep.cpu.brand_string", chip, &n, NULL, 0);
-    uint64_t mem = 0; n = sizeof mem; sysctlbyname("hw.memsize", &mem, &n, NULL, 0);
-    NSString *name = @(model);
-    io_registry_entry_t product = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/product");
-    if (product) {
-        CFTypeRef v = IORegistryEntryCreateCFProperty(product, CFSTR("product-name"), kCFAllocatorDefault, 0);
-        if (v && CFGetTypeID(v) == CFDataGetTypeID()) {
-            char buf[128] = ""; CFIndex len = CFDataGetLength((CFDataRef)v); if (len > (CFIndex)sizeof buf - 1) len = sizeof buf - 1;
-            CFDataGetBytes((CFDataRef)v, CFRangeMake(0, len), (UInt8 *)buf);   // a C string with its terminating 0 (buf ends with one either way)
-            NSString *p = @(buf);
-            if (p.length) name = p;
-        }
-        if (v) CFRelease(v);
-        IOObjectRelease(product);
-    }
-    long cores = 0;
-    io_service_t agx = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AGXAccelerator"));
-    if (agx) {
-        CFTypeRef v = IORegistryEntryCreateCFProperty(agx, CFSTR("gpu-core-count"), kCFAllocatorDefault, 0);
-        if (v && CFGetTypeID(v) == CFNumberGetTypeID()) CFNumberGetValue((CFNumberRef)v, kCFNumberLongType, &cores);
-        if (v) CFRelease(v);
-        IOObjectRelease(agx);
-    }
-    NSOperatingSystemVersion os = NSProcessInfo.processInfo.operatingSystemVersion;
-    NSString *gpu = g_layer.device.name ?: @"GPU";
-    if (chip[0] && [gpu isEqualToString:@(chip)]) gpu = @"GPU";   // Apple silicon: the chip's name twice otherwise ("Apple M3 Pro")
-    s = [NSString stringWithFormat:@"%@ · macOS %ld.%ld%@\n%@ · %llu GB · %@%@", name, (long)os.majorVersion, (long)os.minorVersion,
-         os.patchVersion ? [NSString stringWithFormat:@".%ld", (long)os.patchVersion] : @"", chip[0] ? @(chip) : @"?", (unsigned long long)(mem >> 30), gpu,
-         cores ? [NSString stringWithFormat:@" (%ld GPU cores)", cores] : @""];
-    LOG("front end: performance panel machine: %s", s.UTF8String);
-    return s;
-}
-static NSString *perf_resolution(void) {   // the line on the 3D size
-    float v; int r = dm_render_scale_state(&v);
-    if (r == 1 && v > 0) {
-        NSString *size = perf_size(v), *name = perf_mark(v);
-        return [NSString stringWithFormat:@"3D %@%ld %%%@", size ? [size stringByAppendingString:@"  "] : @"", lround(v * 100), name ? [@" · " stringByAppendingString:name] : @""];
-    }
-    return @"3D: the game's own size";
-}
-@interface DmPerfPanel : NSObject <NSMenuItemValidation>
-@property (nonatomic, strong) NSView *box;
-@property (nonatomic, strong) NSTextField *text;
-@property (nonatomic, strong) NSMenuItem *toggleItem;
+@interface DmViewMenu : NSObject <NSMenuItemValidation>
 @property (nonatomic, strong) NSMenuItem *hudItem;
 @property (nonatomic) BOOL hud;   // Apple's Metal HUD shown on the game layer
-@property (nonatomic) BOOL shown;
-@property (nonatomic) double flashUntil, t0, fps, gpu;   // gpu < 0: no GPU time read yet
-@property (nonatomic) uint64_t n0;
 @end
-@implementation DmPerfPanel
-- (void)build {
-    NSView *cv = g_win.contentView;
-    self.box = [[NSView alloc] initWithFrame:NSMakeRect(12, cv.bounds.size.height - 12 - 124, 380, 124)];
-    self.box.wantsLayer = YES; self.box.layer.backgroundColor = [NSColor colorWithWhite:0 alpha:0.6].CGColor; self.box.layer.cornerRadius = 8;
-    self.box.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;   // stays at the top left as the window resizes
-    self.text = [NSTextField wrappingLabelWithString:@""];
-    self.text.frame = NSInsetRect(self.box.bounds, 10, 8); self.text.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
-    self.text.font = [NSFont monospacedDigitSystemFontOfSize:12 weight:NSFontWeightMedium]; self.text.textColor = NSColor.whiteColor;
-    [self.box addSubview:self.text];
-    self.box.hidden = YES; [cv addSubview:self.box];
-    self.n0 = mtl_present_count(); self.t0 = CACurrentMediaTime(); self.gpu = -1;
-    [NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *t) { (void)t; [self tick]; }];
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"bowshot.perfPanel"]) [self toggle:nil];
-}
-- (void)measure {   // once a second: the frames shown over that second, and the mean GPU time of the last frames the GPU finished
-    double now = CACurrentMediaTime(); uint64_t n = mtl_present_count();
-    self.fps = now - self.t0 < 3 ? (n - self.n0) / (now - self.t0) : 0;   // a longer span: the app was in the background, no reading
-    self.n0 = n; self.t0 = now;
-    double g = 0; int ng = 0; uint64_t f = dm_nvn_frame_count();
-    for (uint64_t k = 2; k <= 32 && k <= f; k++) { double x = mtl_gpu_ms(f - k); if (x >= 0) { g += x; ng++; } }
-    self.gpu = ng ? g / ng : -1;
-}
-- (void)render {
-    const char *up = getenv("DM_UPSCALER"); if (!up || !*up) up = DM_GAME_UPSCALER_DEFAULT;
-    self.text.stringValue = [NSString stringWithFormat:@"%@\n%.0f fps   frame %@   GPU %@\n%@\nUpscaler: %@   ·   ⌘= / ⌘- render scale   ·   ⌘P hide",
-        perf_machine(), self.fps, self.fps > 0 ? [NSString stringWithFormat:@"%.1f ms", 1000.0 / self.fps] : @"–", self.gpu >= 0 ? [NSString stringWithFormat:@"%.1f ms", self.gpu] : @"–",
-        perf_resolution(), up && !strcmp(up, "metalfx") ? @"MetalFX" : @"the game's"];
-}
-- (void)tick {
-    double now = CACurrentMediaTime();
-    if (now - self.t0 >= 1.0) [self measure];
-    BOOL visible = self.shown || now < self.flashUntil;
-    self.box.hidden = !visible;
-    if (visible) [self render];
-}
-- (void)toggle:(id)sender {
-    (void)sender; self.shown = !self.shown; self.flashUntil = 0;
-    self.toggleItem.title = self.shown ? @"Hide Performance Panel" : @"Show Performance Panel";
-    [NSUserDefaults.standardUserDefaults setBool:self.shown forKey:@"bowshot.perfPanel"];
-    [self tick];
-    LOG("front end: performance panel %s", self.shown ? "shown" : "hidden");
+@implementation DmViewMenu
+- (void)toggleHud:(id)sender {   // shown or hidden in play; the choice is the settings window's Performance HUD at the next start
+    (void)sender; self.hud = !self.hud;
+    g_layer.developerHUDProperties = @{@"mode": self.hud ? @"default" : @"disabled"};
+    self.hudItem.title = self.hud ? @"Hide Performance HUD" : @"Show Performance HUD";
+    NSUserDefaults *d = NSUserDefaults.standardUserDefaults;   // the default (off) is not stored (docs/frontends.md, Saved choices)
+    if (self.hud) [d setObject:@"1" forKey:@"launcher.DM_METAL_HUD"]; else [d removeObjectForKey:@"launcher.DM_METAL_HUD"];
+    LOG("front end: Performance HUD %s (View menu)", self.hud ? "shown" : "hidden");
 }
 - (void)step:(int)dir {
     float v; int r = dm_render_scale_step(dir, &v);
-    if (r == 1) {   // the settings window's choice at the next start; the default is not stored (docs/frontends.md, Saved choices)
-        NSUserDefaults *d = NSUserDefaults.standardUserDefaults;
-        if (fabsf(v - DM_GAME_RENDER_SCALE_DEFAULT) < 1e-4f) [d removeObjectForKey:@"launcher.DM_RENDER_SCALE"];
-        else [d setObject:[NSString stringWithFormat:@"%.4f", v] forKey:@"launcher.DM_RENDER_SCALE"];
-    } else NSBeep();
-    self.flashUntil = CACurrentMediaTime() + 3;   // the new size shown for 3 s, the panel hidden or not
-    [self tick];
+    if (r != 1) { NSBeep(); return; }
+    NSUserDefaults *d = NSUserDefaults.standardUserDefaults;   // the settings window's choice at the next start; the default is not stored (docs/frontends.md, Saved choices)
+    if (fabsf(v - DM_GAME_RENDER_SCALE_DEFAULT) < 1e-4f) [d removeObjectForKey:@"launcher.DM_RENDER_SCALE"];
+    else [d setObject:[NSString stringWithFormat:@"%.4f", v] forKey:@"launcher.DM_RENDER_SCALE"];
 }
 - (void)scaleUp:(id)sender { (void)sender; [self step:1]; }
 - (void)scaleDown:(id)sender { (void)sender; [self step:-1]; }
-- (void)toggleHud:(id)sender {   // Apple's Metal HUD on the game layer, shown or hidden in play; the choice is the settings window's Performance HUD at the next start
-    (void)sender; self.hud = !self.hud;
-    g_layer.developerHUDProperties = @{@"mode": self.hud ? @"default" : @"disabled"};
-    self.hudItem.title = self.hud ? @"Hide Metal HUD" : @"Show Metal HUD";
-    NSUserDefaults *d = NSUserDefaults.standardUserDefaults;   // the default (off) is not stored (docs/frontends.md, Saved choices)
-    if (self.hud) [d setObject:@"1" forKey:@"launcher.DM_METAL_HUD"]; else [d removeObjectForKey:@"launcher.DM_METAL_HUD"];
-    LOG("front end: Metal performance HUD %s (View menu)", self.hud ? "shown" : "hidden");
-}
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
     if (item.action == @selector(scaleUp:) || item.action == @selector(scaleDown:)) return dm_render_scale_state(NULL) == 1;
     return YES;
 }
 @end
-static DmPerfPanel *g_perf;
+static DmViewMenu *g_view;
 
 // The Cheats panel (the menu's "Show Cheats Window", ⌘⇧C, or DM_CHEATS_WINDOW=1 at launch): a utility NSPanel that stays
 // open beside the game window, toggles applied live, scrollable. It never takes the key window from the game for a click
@@ -1776,7 +1650,7 @@ void front_run(void (*guest)(void)) {
         // Apple's HUD over the game (frame rate, frame and GPU time, memory): front_hud_env turns it on before the first device. The layer's developerHUDProperties
         // stay unset: mode=default forces this layer's HUD on, so the Metal HUD menu's Hide HUD left it on screen
         if (getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"))) LOG("front end: Metal performance HUD on (DM_METAL_HUD)");
-        else g_layer.developerHUDProperties = @{@"mode": @"disabled"};   // Bowshot: available (hud_env) but hidden until View > Show Metal HUD
+        else g_layer.developerHUDProperties = @{@"mode": @"disabled"};   // Bowshot: available (hud_env) but hidden until View > Show Performance HUD
         v.layer = g_layer; [(DmGameView *)v fitDrawable];
         [win center];
         [win makeKeyAndOrderFront:nil];
@@ -1806,21 +1680,19 @@ void front_run(void (*guest)(void)) {
         [[bar addItemWithTitle:@"Cheats" action:nil keyEquivalent:@""] setSubmenu:cm];
         if (getenv("DM_CHEATS_WINDOW") && atoi(getenv("DM_CHEATS_WINDOW")))   // the Cheats panel open from the start (beside the game, not key)
             dispatch_async(dispatch_get_main_queue(), ^{ [g_cheats_menu showPanel:nil]; });
-        // Bowshot: View: the performance panel (⌘P), Apple's Metal HUD (⌥⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
-        g_perf = [DmPerfPanel new];
+        // Bowshot: View: the Performance HUD (Apple's Metal HUD, ⌥⌘P) and the render scale while the game runs (⌘= / ⌘-; DmViewMenu above)
+        g_view = [DmViewMenu new];
         NSMenu *vm = [[NSMenu alloc] initWithTitle:@"View"];
-        g_perf.toggleItem = [vm addItemWithTitle:@"Show Performance Panel" action:@selector(toggle:) keyEquivalent:@"p"]; g_perf.toggleItem.target = g_perf;
-        g_perf.hud = getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"));
-        g_perf.hudItem = [vm addItemWithTitle:(g_perf.hud ? @"Hide Metal HUD" : @"Show Metal HUD") action:@selector(toggleHud:) keyEquivalent:@"p"];
-        g_perf.hudItem.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption; g_perf.hudItem.target = g_perf;   // ⌥⌘P
+        g_view.hud = getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"));
+        g_view.hudItem = [vm addItemWithTitle:(g_view.hud ? @"Hide Performance HUD" : @"Show Performance HUD") action:@selector(toggleHud:) keyEquivalent:@"p"];
+        g_view.hudItem.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption; g_view.hudItem.target = g_view;   // ⌥⌘P
         [vm addItem:NSMenuItem.separatorItem];
-        [vm addItemWithTitle:@"Increase Render Scale" action:@selector(scaleUp:) keyEquivalent:@"="].target = g_perf;
-        [vm addItemWithTitle:@"Decrease Render Scale" action:@selector(scaleDown:) keyEquivalent:@"-"].target = g_perf;
+        [vm addItemWithTitle:@"Increase Render Scale" action:@selector(scaleUp:) keyEquivalent:@"="].target = g_view;
+        [vm addItemWithTitle:@"Decrease Render Scale" action:@selector(scaleDown:) keyEquivalent:@"-"].target = g_view;
         [[bar addItemWithTitle:@"View" action:nil keyEquivalent:@""] setSubmenu:vm];
         [[bar addItemWithTitle:@"Window" action:nil keyEquivalent:@""] setSubmenu:wm];
         [wm addItemWithTitle:@"Enter Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"].keyEquivalentModifierMask = NSEventModifierFlagControl | NSEventModifierFlagCommand;
         NSApp.mainMenu = bar;
-        [g_perf build];
         const char *fs = getenv("DM_FULLSCREEN");   // 1 (or any value but 0): start in fullscreen; 0, the settings window's Window, or unset: a window
         if (fs && strcmp(fs, "0")) {
             // A game opened from a fullscreen app starts while macOS leaves that Space. Wait for activation and for the window to reach the active Space before asking for fullscreen

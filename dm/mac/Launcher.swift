@@ -146,8 +146,7 @@ struct LauncherView: View {
                     if m.settings.contains(where: { $0.env == "DM_RENDER_SCALE" }) {
                         LabeledContent("Render scale up / down") { Text("⌘=   ⌘−").monospaced().foregroundStyle(.secondary) }
                     }
-                    LabeledContent("Performance panel") { Text("⌘P").monospaced().foregroundStyle(.secondary) }
-                    LabeledContent("Metal HUD") { Text("⌥⌘P").monospaced().foregroundStyle(.secondary) }
+                    LabeledContent("Performance HUD") { Text("⌥⌘P").monospaced().foregroundStyle(.secondary) }
                 }
                 CloudSavesSection()
                 Section {

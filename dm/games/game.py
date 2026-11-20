@@ -209,15 +209,12 @@ def header_one(g):
     ups = upscaler_keys(g)   # the game's own upscaler shaders, which DM_UPSCALER=metalfx (the launcher's Game's upscaler) replaces with MetalFX's spatial scaler (nvn_mtl.m up_mfx_encode)
     dbr = g.get('draw_barriers', 'full')   # how draw passes are ordered (nvn_mtl.m barrier_game): full = each waits for all earlier GPU work, game = by the game's own barriers, so vertex work overlaps the previous pass's fragments
     if dbr not in ('full', 'game'): sys.exit(f'{g.id}: draw_barriers must be full or game: {dbr}')
-    # Bowshot: the Render scale slider's range and marks (settings.py takes them for the launcher) and the base size, for the host's live steps and its performance panel
+    # Bowshot: the Render scale slider's range and default (settings.py takes them, with its marks, for the launcher), for the loader's default and live steps
     rsr = g.get('render_scale', '0.5:1.0:0.05')
     try: rs_lo, rs_hi, rs_st = (float(x) for x in rsr.split(':'))
     except ValueError: sys.exit(f'{g.id}: render_scale is <min>:<max>:<step>: {rsr}')
-    try: rsd = float(g.get('render_scale_default', '1.0'))   # the slider's default: a live step back to it forgets the saved choice (front_mac.m)
+    try: rsd = float(g.get('render_scale_default', '1.0'))   # the slider's default: the loader's with DM_RENDER_SCALE unset; a live step back to it forgets the saved choice (front_mac.m)
     except ValueError: sys.exit(f"{g.id}: render_scale_default is a number: {g.get('render_scale_default')}")
-    rsm = g.get('render_scale_marks', '')
-    rbm = re.fullmatch(r'\s*(\d+)x(\d+)\s+(\d+)x(\d+)\s*', g.get('render_base', '') or '0x0 0x0')
-    if not rbm: sys.exit(f'{g.id}: render_base is "<w>x<h> <w>x<h>" (docked, then handheld)')
     upd = g.get('upscaler_default', 'game')   # Bowshot: the Game's upscaler a run takes when DM_UPSCALER is unset, and the launcher's default for it (settings.tsv)
     if upd not in ('game', 'metalfx'): sys.exit(f'{g.id}: upscaler_default must be game or metalfx: {upd}')
     om = g.get('op_mode', 'console')   # the operation mode reported at start (hle_oe.c dm_opmode; DM_OPMODE overrides): console = docked, handheld = touch screen in use (Super Mario Galaxy's pointer)
@@ -270,8 +267,6 @@ def header_one(g):
          f'#define DM_GAME_UPSCALER_DEFAULT {q(upd)}',
          f'#define DM_GAME_RENDER_SCALE_MIN {rs_lo!r}f', f'#define DM_GAME_RENDER_SCALE_MAX {rs_hi!r}f', f'#define DM_GAME_RENDER_SCALE_STEP {rs_st!r}f',
          f'#define DM_GAME_RENDER_SCALE_DEFAULT {rsd!r}f',
-         f'#define DM_GAME_RENDER_SCALE_MARKS {q(rsm)}',
-         f'#define DM_GAME_RENDER_BASE_DOCKED_W {rbm[1]}', f'#define DM_GAME_RENDER_BASE_DOCKED_H {rbm[2]}', f'#define DM_GAME_RENDER_BASE_HANDHELD_W {rbm[3]}', f'#define DM_GAME_RENDER_BASE_HANDHELD_H {rbm[4]}',
          f'#define DM_GAME_PERF_BOOST {int(pm == "boost")}',
          f'#define DM_GAME_TEX_FLUSH_UPLOAD {int(tfu == "on")}',
          f'#define DM_GAME_SHADER_KEY_SKIP_OFF {sko:#x}', f'#define DM_GAME_SHADER_KEY_SKIP_LEN {skl:#x}',
