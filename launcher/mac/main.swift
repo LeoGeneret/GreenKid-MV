@@ -10,6 +10,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let build = NSButton(title: "Build My Local Game", target: nil, action: nil)
     let choose = NSButton(title: "Choose Game Folder…", target: nil, action: nil)
     let reveal = NSButton(title: "Show Private Output", target: nil, action: nil)
+    let test = NSButton(title: "Test Resolutions (Hyrule Field)", target: nil, action: nil)
     var process: Process?
     var output: URL?
 
@@ -37,9 +38,11 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         choose.target = self; choose.action = #selector(chooseFolder)
         build.target = self; build.action = #selector(startBuild)
         reveal.target = self; reveal.action = #selector(showOutput); reveal.isEnabled = false
+        test.target = self; test.action = #selector(startTest)
+        test.toolTip = "Plays the field-run route in Hyrule Field from your save at each of the Render scale slider's 7 steps, twice each (about 35 minutes), and writes one table to compare them."
         let row = NSStackView(views: [folder, choose]); row.orientation = .horizontal
         folder.setContentHuggingPriority(.defaultLow, for: .horizontal)
-        let buttons = NSStackView(views: [build, reveal]); buttons.orientation = .horizontal
+        let buttons = NSStackView(views: [build, test, reveal]); buttons.orientation = .horizontal
         let scroll = NSScrollView()
         scroll.hasVerticalScroller = true
         log.isEditable = false; log.isSelectable = true
@@ -84,14 +87,26 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func startBuild() {
+        run(script: "greenkid_build.sh", arguments: ["--build", folder.stringValue], starting: "Building from your files. The first full build can take a long time.",
+            done: "Local build ready. Keep the resulting game app private.", failed: "Build stopped. The log above explains what to fix.", results: nil)
+    }
+
+    // GreenKid-MV: the resolution test (scripts/greenkid_bench.sh): the 7 Render scale steps on the field-run route from the player's save, its table opened when it ends
+    @objc func startTest() {
+        let latest = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("GreenKid-MV-local/bench/latest-results.md")
+        run(script: "greenkid_bench.sh", arguments: [folder.stringValue], starting: "Testing the 7 resolutions in Hyrule Field (about 35 minutes). Don't use the Mac meanwhile; game windows will open and close.",
+            done: "Resolution test finished: the results table is open.", failed: "Resolution test stopped. The log above explains why.", results: latest)
+    }
+
+    func run(script name: String, arguments: [String], starting: String, done: String, failed: String, results: URL?) {
         guard process == nil else { return }
         guard !folder.stringValue.isEmpty else { status.stringValue = "Choose your game folder first."; return }
         guard let resources = Bundle.main.resourceURL else { status.stringValue = "The app resources are missing."; return }
-        let script = resources.appendingPathComponent("engine/scripts/greenkid_build.sh")
+        let script = resources.appendingPathComponent("engine/scripts/\(name)")
         guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
-        task.arguments = [script.path, "--build", folder.stringValue]
+        task.arguments = [script.path] + arguments
         let pipe = Pipe()
         task.standardOutput = pipe; task.standardError = pipe
         task.standardInput = FileHandle.nullDevice
@@ -104,16 +119,17 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         task.terminationHandler = { [weak self] finished in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.process = nil; self.build.isEnabled = true; self.choose.isEnabled = true
-                self.status.stringValue = finished.terminationStatus == 0 ? "Local build ready. Keep the resulting game app private." : "Build stopped. The log above explains what to fix."
+                self.process = nil; self.build.isEnabled = true; self.test.isEnabled = true; self.choose.isEnabled = true
+                self.status.stringValue = finished.terminationStatus == 0 ? done : failed
+                if let r = results, FileManager.default.fileExists(atPath: r.path) { NSWorkspace.shared.open(r) }
                 self.reveal.isEnabled = self.output.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             }
         }
         output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("GreenKid-MV-local")
-        log.string = ""; status.stringValue = "Building from your files. The first full build can take a long time."
-        build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
+        log.string = ""; status.stringValue = starting
+        build.isEnabled = false; test.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
-            build.isEnabled = true; choose.isEnabled = true
+            build.isEnabled = true; test.isEnabled = true; choose.isEnabled = true
             status.stringValue = "Could not start the builder: \(error.localizedDescription)"
         }
     }
@@ -130,9 +146,9 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func applicationShouldTerminate(_ sender: NSApplication) -> NSApplication.TerminateReply {
         guard process != nil else { return .terminateNow }
         let alert = NSAlert()
-        alert.messageText = "A local build is still running"
-        alert.informativeText = "Keep GreenKid-MV open until it finishes. Closing the window does not cancel the engine's compiler jobs."
-        alert.addButton(withTitle: "Keep Building")
+        alert.messageText = "A local build or resolution test is still running"
+        alert.informativeText = "Keep GreenKid-MV open until it finishes. Closing the window does not cancel the engine's jobs."
+        alert.addButton(withTitle: "Keep Running")
         alert.runModal()
         return .terminateCancel
     }
@@ -140,7 +156,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
 if CommandLine.arguments.contains("--self-check") {
     let resources = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources")
-    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/greenkid_build.sh", "engine/scripts/build_ipa_from_nsp.py", "Documentation/CREDITS.md"]
+    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/greenkid_build.sh", "engine/scripts/greenkid_bench.sh", "engine/scripts/build_ipa_from_nsp.py", "engine/scripts/bench.py", "Documentation/CREDITS.md"]
     let missing = required.filter { !FileManager.default.fileExists(atPath: resources.appendingPathComponent($0).path) }
     if !missing.isEmpty { fputs("Missing builder resources: \(missing.joined(separator: ", "))\n", stderr); exit(1) }
     print("GreenKid-MV builder resources verified; no game is required for this check.")

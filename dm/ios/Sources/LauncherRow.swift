@@ -20,6 +20,11 @@ struct SettingRow: View {
                 set: { m.values[s.env] = String(format: "%.4f", $0) })   // GreenKid-MV: 4 decimals, so a twelfth step stays on its whole size (0.6667 of 1920x1080 = 1280x720, not 0.67)
     }
     private var percentage: String { m.rangeLabel(s, rangeValue.wrappedValue) }
+    // GreenKid-MV: a range's named values (Ocarina of Time's Potato, Normal, Native) as fractions of the slider's width, written under it at their steps
+    private var markPlaces: [(name: String, at: Double)] {
+        guard let marks = s.marks, let lo = s.min, let hi = s.max, hi > lo else { return [] }
+        return marks.compactMap { mk in mk.count == 2 ? Double(mk[0]).map { (name: mk[1], at: ($0 - lo) / (hi - lo)) } : nil }.filter { $0.at >= 0 && $0.at <= 1 }
+    }
 
     private var settingLabel: some View {
         VStack(alignment: .leading, spacing: 4) {
@@ -48,6 +53,16 @@ struct SettingRow: View {
                     Slider(value: rangeValue, in: (s.min ?? 0)...(s.max ?? 1), step: s.step ?? 0.05)
                         .accessibilityLabel(s.label)
                         .accessibilityValue(percentage)
+                    if !markPlaces.isEmpty {
+                        GeometryReader { g in   // the thumb's centre stops about 12 points inside each end of the track
+                            ForEach(markPlaces.indices, id: \.self) { i in
+                                Text("▲ " + markPlaces[i].name).font(.caption2).foregroundStyle(.secondary).fixedSize()
+                                    .position(x: min(max(12 + markPlaces[i].at * (g.size.width - 24), 24), g.size.width - 24), y: 7)
+                            }
+                        }
+                        .frame(height: 14)
+                        .accessibilityHidden(true)
+                    }
                 }
             default:
                 Toggle(isOn: Binding(get: { (m.values[s.env] ?? s.def) == s.onValue }, set: { m.values[s.env] = $0 ? s.onValue : s.offValue })) {
