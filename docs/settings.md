@@ -31,6 +31,10 @@ On a Mac, a game checked at that speed (Fire Emblem Fortune's Weave, Mario & Lui
 
 Off, the default, keeps the 3D picture at full size. On lets the game lower its resolution when frames run heavy and raise it again when they fit, as on the Switch: steadier frame rate, at times a softer picture. Only games whose resolution control the app can hold offer it (NieR:Automata, Ocarina of Time).
 
+### Resolution
+
+GreenKid-MV, Ocarina of Time only. **Normal** renders the 3D picture at 1280×720 handheld (1951×1098 docked). **Potato** is the game's lighter mode: 960×540 shown at 720p, for the coolest and longest-lasting play. **Render scale** fixes the 3D size with the **Render scale** slider, which is drawn only with this choice; Potato (50 %), Normal (67 %) and Native (100 %) are written under it. ⌘= and ⌘- change it while you play ([The View menu](#the-view-menu)).
+
 ### Render scale
 
 The size of the 3D picture, from 50 to 100 %. Below 100 % the size is fixed there and the game's own dynamic resolution is off; 100 % keeps the game's own. Lower can be lighter on the GPU but is blurrier; the HUD and text keep their sharpness. Only games the app can scale offer it.
@@ -192,6 +196,10 @@ The app turns the game's graphics commands into Metal commands on a thread of it
 
 - **When to change it:** leave it on unless a game misbehaves with it; turning it off is a diagnostic step.
 
+### Texture Memory Saver
+
+GreenKid-MV, from kid-with-sword-remake: large textures are made without their sharpest detail level, about a quarter of their memory and shorter area loads, slightly softer close up. Off by default; turn it on for a Mac with little memory. In an `env.txt`: `DM_NVN_TEX_MIP_SKIP=512`.
+
 ### Hold frames when late
 
 For games whose frame rate the app controls ([Frame rate](#frame-rate)). With 60 fps chosen, each frame is meant to stay on screen for one refresh. When a frame comes late, the app can either slow the game down to 30 fps for a while, or keep 60 and show late frames as they come.
@@ -242,6 +250,10 @@ Turn off **Show this window at launch** to start the game at once with your choi
 
 **Choose a folder…** picks the iCloud Drive folder the game's save is synced through, the one the iPhone app chose in its launcher's **Cloud saves**, or the game's own folder inside it, named after its title ID ([Cloud saves](#cloud-saves)); **Turn off** stops it. Off by default. macOS may ask once whether the app may open iCloud Drive; if the game log says `this app may not open iCloud Drive`, allow it in System Settings › Privacy & Security › Files and Folders. In an `env.txt`: `DM_SAVE_SYNC=<folder>`, or `DM_SAVE_SYNC=icloud` for iCloud Drive › nxnative Saves; the window then shows it fixed.
 
+
+### The View menu
+
+GreenKid-MV, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
 ## Cloud saves
 
 The Mac app and the iPhone app of one game can share a save through iCloud Drive. Choose the same iCloud Drive folder on both: **Cloud saves** › **Choose a folder…** in the Mac settings window, and **Cloud saves** in the iPhone launcher (any folder, for instance one named **nxnative Saves**). Each game keeps one file there, `<title ID>/save.dmsync`, which holds the whole save.
