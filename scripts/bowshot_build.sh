@@ -1,6 +1,7 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
 # Builds only from the player's files. No game data belongs in this repository.
+# The engine's progress: lines for a terminal, json events with BOWSHOT_PROGRESS=json (the builder window's progress bar; build.log then holds those events).
 # A blocking error is one line that starts with ERROR: (the builder window shows it in red); the finished app is the line READY: <path> (green).
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
@@ -55,7 +56,7 @@ mkdir -p "$PRIVATE_DIR"
 BUILD_LOG="$PRIVATE_DIR/build.log"
 printf 'Private outputs: %s\nEngine revision: %s\n' "$PRIVATE_DIR" "$REVISION"
 cd "$ENGINE_DIR"
-"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac --work-dir "$WORK_DIR" --keep-extracted --progress lines 2>&1 | tee "$BUILD_LOG"
+"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac --work-dir "$WORK_DIR" --keep-extracted --progress "${BOWSHOT_PROGRESS:-lines}" 2>&1 | tee "$BUILD_LOG"
 ENV_FILE="$PRIVATE_DIR/runtime.env"
 printf '# Local settings for the app built from your dump\n' > "$ENV_FILE"
 if grep -q 'game profile: 0400486024DEC000' "$BUILD_LOG"; then
@@ -78,5 +79,5 @@ DM_PRESENT_UPSCALE=off
 DM_FPS_TARGET=60
 SETTINGS
 fi
-"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" --fallback-icon "$ENGINE_DIR/launcher/mac/AppIcon.png" -o "$OUTPUT_APP" --progress lines 2>&1 | tee -a "$BUILD_LOG"
+"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" --fallback-icon "$ENGINE_DIR/launcher/mac/AppIcon.png" -o "$OUTPUT_APP" --progress "${BOWSHOT_PROGRESS:-lines}" 2>&1 | tee -a "$BUILD_LOG"
 printf '\nREADY: %s\nThis app contains your game. Keep it private; do not upload it.\n' "$OUTPUT_APP"

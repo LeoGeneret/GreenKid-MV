@@ -10,6 +10,11 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let build = NSButton(title: "Build My Local Game", target: nil, action: nil)
     let choose = NSButton(title: "Choose Game Folder…", target: nil, action: nil)
     let reveal = NSButton(title: "Open game folder", target: nil, action: nil)
+    let bar = NSProgressIndicator()                      // the current step's progress (indeterminate while it cannot be counted)
+    let stepLabel = NSTextField(labelWithString: "")      // "Step 3/9: Mac shaders · translating — 28 % — about 11 min left"
+    let logToggle = NSButton(title: "Show build log", target: nil, action: nil)
+    var logScroll: NSScrollView!
+    var stage = (k: 0, n: 0, name: "", step: "")         // the engine's current stage (its JSON events, BOWSHOT_PROGRESS=json)
     var process: Process?
     var output: URL?
     var pending = ""                 // the end of the output that has no newline yet: a line is coloured once it is whole
@@ -60,10 +65,17 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         log.autoresizingMask = [.width]; log.isVerticallyResizable = true
         log.textContainer?.widthTracksTextView = true
         scroll.documentView = log
+        bar.style = .bar; bar.isIndeterminate = false; bar.minValue = 0; bar.maxValue = 1; bar.isHidden = true
+        stepLabel.isHidden = true; stepLabel.lineBreakMode = .byTruncatingTail
+        logToggle.bezelStyle = .inline; logToggle.target = self; logToggle.action = #selector(toggleLog)
+        scroll.isHidden = true   // the whole log, folded by default (Show build log)
+        logScroll = scroll
         let credits = NSTextField(wrappingLabelWithString: "Engine: seedds / nxnative · Ocarina fork: cheemu21 / kid-with-sword-remake · Full contributors and licences are included under Documentation.")
         credits.font = .systemFont(ofSize: 11)
-        let stack = NSStackView(views: [title, subtitle, row, buttons, status, scroll, credits])
+        let stack = NSStackView()
         stack.orientation = .vertical; stack.alignment = .leading; stack.spacing = 13
+        stack.setViews([title, subtitle, row, buttons, status, stepLabel, bar, logToggle, scroll], in: .top)
+        stack.setViews([credits], in: .bottom)   // the credits stay at the window's foot, the log folded or not
         stack.translatesAutoresizingMaskIntoConstraints = false
         let content = window.contentView!
         content.addSubview(stack)
@@ -74,6 +86,8 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             stack.bottomAnchor.constraint(equalTo: content.bottomAnchor, constant: -24),
             row.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            bar.widthAnchor.constraint(equalTo: stack.widthAnchor),
+            stepLabel.widthAnchor.constraint(equalTo: stack.widthAnchor),
             scroll.heightAnchor.constraint(greaterThanOrEqualToConstant: 240),
             subtitle.widthAnchor.constraint(equalTo: stack.widthAnchor),
             credits.widthAnchor.constraint(equalTo: stack.widthAnchor)
@@ -133,7 +147,56 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         log.scrollToEndOfDocument(nil)
     }
     var readyNext = false
+    @objc func toggleLog() {
+        logScroll.isHidden.toggle()
+        logToggle.title = logScroll.isHidden ? "Show build log" : "Hide build log"
+        if !logScroll.isHidden { log.scrollToEndOfDocument(nil) }
+    }
+
+    // About how long is left, from the engine's estimate in seconds
+    func left(_ eta: Double) -> String {
+        if eta < 60 { return "less than a minute left" }
+        let m = Int((eta / 60).rounded())
+        return m < 60 ? "about \(m) min left" : "about \(m / 60) h \(String(format: "%02d", m % 60)) min left"
+    }
+
+    // The engine's progress (build_ipa_from_nsp.py --progress json): stage, step, progress and stage_end move the bar and the step line; say is a message for the log
+    func handleEvent(_ e: [String: Any]) {
+        let ev = e["ev"] as? String ?? ""
+        switch ev {
+        case "stage":
+            stage = (e["k"] as? Int ?? 0, e["n"] as? Int ?? 0, e["name"] as? String ?? "", e["step"] as? String ?? "")
+            bar.isIndeterminate = true; bar.startAnimation(nil); bar.isHidden = false; stepLabel.isHidden = false
+            stepLabel.stringValue = stepTitle()
+            appendLine("[\(stage.k)/\(stage.n)] \(stage.name)" + (stage.step.isEmpty ? "" : " · \(stage.step)") + " …")
+        case "step":
+            stage.step = e["step"] as? String ?? ""
+            stepLabel.stringValue = stepTitle()
+            appendLine("[\(stage.k)/\(stage.n)] \(stage.name) · \(stage.step) …")
+        case "progress":
+            var text = stepTitle()
+            if let f = e["frac"] as? Double {
+                bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = f
+                text += " — \(Int((f * 100).rounded())) %"
+            } else if !bar.isIndeterminate { bar.isIndeterminate = true; bar.startAnimation(nil) }
+            if let eta = e["eta"] as? Double { text += " — " + left(eta) }
+            stepLabel.stringValue = text
+        case "stage_end":
+            let ok = e["ok"] as? Bool ?? true, warn = e["warn"] as? Bool ?? false
+            let sec = Int(e["elapsed"] as? Double ?? 0), summary = e["summary"] as? String ?? ""
+            bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = 1
+            appendLine((warn ? "⚠" : ok ? "✓" : "✗") + " [\(stage.k)/\(stage.n)] \(stage.name) (\(sec / 60):\(String(format: "%02d", sec % 60)))" + (summary.isEmpty ? "" : ": \(summary)"))
+        case "say":
+            for l in (e["msg"] as? String ?? "").components(separatedBy: "\n") { appendLine(l) }
+        case "game":
+            appendLine("Game: \(e["name"] as? String ?? "?") \(e["version"] as? String ?? "")")
+        default: break
+        }
+    }
+    func stepTitle() -> String { "Step \(stage.k)/\(stage.n): \(stage.name)" + (stage.step.isEmpty ? "" : " · \(stage.step)") }
+
     func appendLine(_ line: String) {
+        if line.hasPrefix("{"), let data = line.data(using: .utf8), let e = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any], e["ev"] != nil { handleEvent(e); return }
         let color: NSColor
         if line.hasPrefix("ERROR: ") { color = .systemRed; sawError = true }
         else if line.hasPrefix("READY: ") || readyNext { color = .systemGreen }
@@ -155,6 +218,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
         task.arguments = [script.path, "--build", folder.stringValue]
+        var env = ProcessInfo.processInfo.environment; env["BOWSHOT_PROGRESS"] = "json"; task.environment = env   // the engine's progress as events for the bar
         let pipe = Pipe()
         task.standardOutput = pipe; task.standardError = pipe
         task.standardInput = FileHandle.nullDevice
@@ -170,8 +234,14 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.process = nil; self.choose.isEnabled = true
                 self.build.isEnabled = self.folderProblem(self.folder.stringValue) == nil
                 self.append("", flush: true)
-                if finished.terminationStatus == 0 { self.setStatus("Local build ready. Keep the resulting game app private.", .ready) }
-                else {
+                self.bar.stopAnimation(nil)
+                if finished.terminationStatus == 0 {
+                    self.setStatus("Local build ready. Keep the resulting game app private.", .ready)
+                    self.bar.isIndeterminate = false; self.bar.doubleValue = 1; self.stepLabel.stringValue = "Done"
+                } else {
+                    self.bar.isHidden = true
+                    self.stepLabel.stringValue = self.stage.k > 0 ? "Stopped at " + self.stepTitle().replacingOccurrences(of: "Step", with: "step") : "Stopped before the first step"
+                    if self.logScroll.isHidden { self.toggleLog() }   // the reason is in the log: open it
                     self.setStatus("Build stopped. The red line in the log explains what to fix.", .error)
                     if let r = self.lastWarning, let storage = self.log.textStorage, NSMaxRange(r) <= storage.length { storage.addAttribute(.foregroundColor, value: NSColor.systemRed, range: r) }   // the engine's reason
                     else if !self.sawError { self.appendLine("ERROR: The build stopped (exit \(finished.terminationStatus)) without a message. The full log is build.log in Bowshot-local.") }
@@ -180,7 +250,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("Bowshot-local")
-        log.string = ""; pending = ""; lastWarning = nil; sawError = false; readyNext = false; setStatus("Building from your files. The first full build can take 1.5+ hours.")
+        log.string = ""; pending = ""; lastWarning = nil; sawError = false; readyNext = false; stage = (0, 0, "", ""); stepLabel.stringValue = "Starting…"; stepLabel.isHidden = false; bar.isHidden = false; bar.isIndeterminate = true; bar.startAnimation(nil); setStatus("Building from your files. The first full build can take 1.5+ hours.")
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
             build.isEnabled = folderProblem(folder.stringValue) == nil; choose.isEnabled = true

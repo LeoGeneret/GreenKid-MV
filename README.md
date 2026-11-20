@@ -39,7 +39,7 @@ The first build converts every shader (the shader chain version changed).
 
 ## Features
 
-- A Mac window for choosing your game folder and following the build log.
+- A Mac window for choosing your game folder, with a progress bar for each build step and the full build log one click away.
 - A bundled, pinned engine source snapshot and its existing compiler tools; the launcher contains no playable game.
 - Full local shader and pipeline preparation rather than a reduced first-area shader set.
 - Normal Ocarina rendering at 1280×720, the lighter preset at 960×540 with upscaling, or any Render scale step between 50 % and 100 %.
@@ -96,7 +96,7 @@ It should end with `Prerequisite executables found.` Otherwise it names what is 
 ### 5. Build your game
 
 1. Open **Bowshot** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
-2. Click **Build My Local Game**. The button turns blue once the folder is valid (outside any Git repository, with your `.nup`, NSP files or dump in it); otherwise the line under it says what is missing. The log shows each stage.
+2. Click **Build My Local Game**. The button turns blue once the folder is valid (outside any Git repository, with your `.nup`, NSP files or dump in it); otherwise the line under it says what is missing. A progress bar then shows the current step, its percentage and about how long is left; **Show build log** unfolds every message (blocking errors in red, warnings in orange).
    - The **first build takes 1.5 hours or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
    - The first run also installs a private Python into `~/Library/Application Support/Bowshot/`. It downloads Python packages only, never game files or keys.
 3. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.
@@ -122,7 +122,7 @@ Tips for smooth play:
 | What | Where |
 |---|---|
 | Your game app (private, contains your game) | `<game folder>/Bowshot-local/Ocarina of Time.app` |
-| Build log | `<game folder>/Bowshot-local/build.log` |
+| Build log (built from the window: one JSON event per line) | `<game folder>/Bowshot-local/build.log` |
 | Settings chosen for your build | `<game folder>/Bowshot-local/runtime.env` |
 | Game settings file (overrides) | `~/Library/Application Support/nxnative/0400486024DEC000/env.txt` |
 | Game log (attach to bug reports) | `~/Library/Logs/nxnative/0400486024DEC000.log` |
