@@ -14,7 +14,11 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let stepLabel = NSTextField(labelWithString: "")      // "Step 3/9: Mac shaders · translating — 28 % — about 11 min left"
     let logToggle = NSButton(title: "Show build log", target: nil, action: nil)
     var logScroll: NSScrollView!
-    var stage = (k: 0, n: 0, name: "", step: "")         // the engine's current stage (its JSON events, BOWSHOT_PROGRESS=json)
+    var stage = (k: 0, n: 0, name: "", step: "")         // the step shown: the engine's stage in the first part, "Game app" in the second (BOWSHOT_PROGRESS=json)
+    var firstStages = 0                                   // how many stages the engine planned for the first part: the second part is step firstStages + 1
+    var appPart = false                                   // the second part has begun (bowshot_build.sh's bowshot_part event)
+    var inner = (k: 0, n: 0, name: "")                    // the engine's own stage within the second part
+    var appStart = Date()
     var process: Process?
     var output: URL?
     var pending = ""                 // the end of the output that has no newline yet: a line is coloured once it is whole
@@ -164,28 +168,59 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func handleEvent(_ e: [String: Any]) {
         let ev = e["ev"] as? String ?? ""
         switch ev {
-        case "stage":
-            stage = (e["k"] as? Int ?? 0, e["n"] as? Int ?? 0, e["name"] as? String ?? "", e["step"] as? String ?? "")
+        case "bowshot_part":   // the second part: one step of its own, after the first part's stages
+            appPart = true; appStart = Date()
+            stage = (firstStages + 1, firstStages + 1, e["name"] as? String ?? "Game app", "resolution presets")
+            inner = (0, 0, "")
             bar.isIndeterminate = true; bar.startAnimation(nil); bar.isHidden = false; stepLabel.isHidden = false
             stepLabel.stringValue = stepTitle()
-            appendLine("[\(stage.k)/\(stage.n)] \(stage.name)" + (stage.step.isEmpty ? "" : " · \(stage.step)") + " …")
+            appendLine("[\(stage.k)/\(stage.n)] \(stage.name) …")
+        case "stage":
+            let k = e["k"] as? Int ?? 0, n = e["n"] as? Int ?? 0, name = e["name"] as? String ?? "", step = e["step"] as? String ?? ""
+            if appPart {
+                inner = (k, n, name); stage.step = step.isEmpty ? name : "\(name) · \(step)"
+                if n > 0 { bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = Double(k - 1) / Double(n) }
+                stepLabel.stringValue = stepTitle()
+                appendLine("[\(stage.k)/\(stage.n)] \(stage.name) · \(stage.step) …")
+            } else {
+                firstStages = n
+                stage = (k, n + 1, name, step)   // + 1: the second part, still to come
+                bar.isIndeterminate = true; bar.startAnimation(nil); bar.isHidden = false; stepLabel.isHidden = false
+                stepLabel.stringValue = stepTitle()
+                appendLine("[\(stage.k)/\(stage.n)] \(stage.name)" + (stage.step.isEmpty ? "" : " · \(stage.step)") + " …")
+            }
         case "step":
-            stage.step = e["step"] as? String ?? ""
+            let step = e["step"] as? String ?? ""
+            stage.step = appPart ? (step.isEmpty ? inner.name : "\(inner.name) · \(step)") : step
             stepLabel.stringValue = stepTitle()
             appendLine("[\(stage.k)/\(stage.n)] \(stage.name) · \(stage.step) …")
         case "progress":
             var text = stepTitle()
-            if let f = e["frac"] as? Double {
-                bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = f
-                text += " — \(Int((f * 100).rounded())) %"
-            } else if !bar.isIndeterminate { bar.isIndeterminate = true; bar.startAnimation(nil) }
-            if let eta = e["eta"] as? Double { text += " — " + left(eta) }
+            if appPart {   // the second part's bar: its engine stages done, plus the current one's share
+                if inner.n > 0 {
+                    let f = (Double(inner.k - 1) + (e["frac"] as? Double ?? 0)) / Double(inner.n)
+                    bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = f
+                    text += " — \(Int((f * 100).rounded())) %"
+                }
+            } else {
+                if let f = e["frac"] as? Double {
+                    bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = f
+                    text += " — \(Int((f * 100).rounded())) %"
+                } else if !bar.isIndeterminate { bar.isIndeterminate = true; bar.startAnimation(nil) }
+                if let eta = e["eta"] as? Double { text += " — " + left(eta) }
+            }
             stepLabel.stringValue = text
         case "stage_end":
             let ok = e["ok"] as? Bool ?? true, warn = e["warn"] as? Bool ?? false
             let sec = Int(e["elapsed"] as? Double ?? 0), summary = e["summary"] as? String ?? ""
-            bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = 1
-            appendLine((warn ? "⚠" : ok ? "✓" : "✗") + " [\(stage.k)/\(stage.n)] \(stage.name) (\(sec / 60):\(String(format: "%02d", sec % 60)))" + (summary.isEmpty ? "" : ": \(summary)"))
+            let mark = warn ? "⚠" : ok ? "✓" : "✗", time = "\(sec / 60):\(String(format: "%02d", sec % 60))"
+            if appPart {
+                if inner.n > 0 { bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = Double(inner.k) / Double(inner.n) }
+                appendLine("\(mark) [\(stage.k)/\(stage.n)] \(stage.name) · \(inner.name) (\(time))" + (summary.isEmpty ? "" : ": \(summary)"))
+            } else {
+                bar.stopAnimation(nil); bar.isIndeterminate = false; bar.doubleValue = 1
+                appendLine("\(mark) [\(stage.k)/\(stage.n)] \(stage.name) (\(time))" + (summary.isEmpty ? "" : ": \(summary)"))
+            }
         case "say":
             for l in (e["msg"] as? String ?? "").components(separatedBy: "\n") { appendLine(l) }
         case "game":
@@ -238,6 +273,10 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 if finished.terminationStatus == 0 {
                     self.setStatus("Local build ready. Keep the resulting game app private.", .ready)
                     self.bar.isIndeterminate = false; self.bar.doubleValue = 1; self.stepLabel.stringValue = "Done"
+                    if self.appPart {
+                        let sec = Int(Date().timeIntervalSince(self.appStart))
+                        self.appendLine("✓ [\(self.stage.k)/\(self.stage.n)] \(self.stage.name) (\(sec / 60):\(String(format: "%02d", sec % 60)))")
+                    }
                 } else {
                     self.bar.isHidden = true
                     self.stepLabel.stringValue = self.stage.k > 0 ? "Stopped at " + self.stepTitle().replacingOccurrences(of: "Step", with: "step") : "Stopped before the first step"
@@ -250,7 +289,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             }
         }
         output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("Bowshot-local")
-        log.string = ""; pending = ""; lastWarning = nil; sawError = false; readyNext = false; stage = (0, 0, "", ""); stepLabel.stringValue = "Starting…"; stepLabel.isHidden = false; bar.isHidden = false; bar.isIndeterminate = true; bar.startAnimation(nil); setStatus("Building from your files. The first full build can take 1.5+ hours.")
+        log.string = ""; pending = ""; lastWarning = nil; sawError = false; readyNext = false; stage = (0, 0, "", ""); firstStages = 0; appPart = false; inner = (0, 0, ""); stepLabel.stringValue = "Starting…"; stepLabel.isHidden = false; bar.isHidden = false; bar.isIndeterminate = true; bar.startAnimation(nil); setStatus("Building from your files. The first full build can take 1.5+ hours.")
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
             build.isEnabled = folderProblem(folder.stringValue) == nil; choose.isEnabled = true

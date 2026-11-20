@@ -57,6 +57,8 @@ BUILD_LOG="$PRIVATE_DIR/build.log"
 printf 'Private outputs: %s\nEngine revision: %s\n' "$PRIVATE_DIR" "$REVISION"
 cd "$ENGINE_DIR"
 "$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac --work-dir "$WORK_DIR" --keep-extracted --progress "${BOWSHOT_PROGRESS:-lines}" 2>&1 | tee "$BUILD_LOG"
+# The second part (the resolution presets, then the game app itself) is one step of its own in the builder window: the engine numbers its stages afresh
+if [[ "${BOWSHOT_PROGRESS:-}" == json ]]; then echo '{"ev": "bowshot_part", "name": "Game app"}'; fi
 ENV_FILE="$PRIVATE_DIR/runtime.env"
 printf '# Local settings for the app built from your dump\n' > "$ENV_FILE"
 if grep -q 'game profile: 0400486024DEC000' "$BUILD_LOG"; then
