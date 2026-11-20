@@ -66,10 +66,10 @@ if grep -q 'game profile: 0400486024DEC000' "$BUILD_LOG"; then
   [[ -f "$IMAGE" ]] || { echo 'ERROR: The supported Ocarina of Time v131072 RomFS image was not found.'; exit 1; }
   "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/handheld" 0.666667 - flat
   "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/potato-handheld" 0.75 - flat
+  # Fixed for every run (an env file's values are shown locked in the settings window). Frame rate, Display mode and Game's upscaler stay the player's: their
+  # defaults are the profile's (60 fps, a window, MetalFX)
   cat >> "$ENV_FILE" <<'SETTINGS'
-DM_FULLSCREEN=0
 DM_OPMODE=0
-DM_UPSCALER=metalfx
 DM_FPS_HOLD=off
 DM_TEX_RELEASE=0
 DM_GUEST_FILE=0
@@ -78,7 +78,6 @@ DM_FOCUS_KEEP=1
 DM_DYNAMIC_RESOLUTION=0
 DM_PRESENT_INTERVAL=display
 DM_PRESENT_UPSCALE=off
-DM_FPS_TARGET=60
 SETTINGS
 fi
 "$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" --fallback-icon "$ENGINE_DIR/launcher/mac/AppIcon.png" -o "$OUTPUT_APP" --progress "${BOWSHOT_PROGRESS:-lines}" 2>&1 | tee -a "$BUILD_LOG"

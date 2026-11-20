@@ -61,3 +61,5 @@ render_base	2560x1440 1920x1080
 render_scale	0.5:1.0:0.0833333333
 render_scale_default	0.75
 render_scale_marks	0.5=Potato,0.6666667=Normal,1.0=Native
+# Bowshot: MetalFX draws the game's own upscaler networks unless the player picks Game's own (the launcher's Game's upscaler): about 1.4 ms less GPU a frame upstream on an M4 Pro, 3.4 ms on an M1
+upscaler_default	metalfx

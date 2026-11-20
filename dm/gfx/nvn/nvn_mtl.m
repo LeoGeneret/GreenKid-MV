@@ -18740,10 +18740,14 @@ enum { UP_MFX_SCALERS = 8 };   // dynamic resolution moves the input, and a form
 static up_mfx_scaler g_up_mfx[UP_MFX_SCALERS]; static int g_up_mfx_next;
 static uint64_t g_up_mfx_n, g_up_mfx_kept, g_up_mfx_straight[2];   // dispatches drawn by MetalFX, dispatches of a named shader left to it, of the drawn: input and output that were the game's own textures
 void mtl_up_mfx_stats(uint64_t *n, uint64_t *kept) { *n = g_up_mfx_n; *kept = g_up_mfx_kept; }
+#ifndef DM_GAME_UPSCALER_DEFAULT   // a header from game.py before the key
+#define DM_GAME_UPSCALER_DEFAULT "game"
+#endif
 static int up_mfx_on(void) {
     static int v = -1;
     if (v >= 0) return v;
-    const char *e = getenv("DM_UPSCALER"); v = e && !strcmp(e, "metalfx");
+    const char *e = getenv("DM_UPSCALER"); if (!e || !*e) e = DM_GAME_UPSCALER_DEFAULT;   // Bowshot: unset, the profile's upscaler_default (game.py), as the launcher shows it
+    v = !strcmp(e, "metalfx");
     if (e && *e && strcmp(e, "metalfx") && strcmp(e, "game")) MLOG("[RED] DM_UPSCALER=%s: metalfx or game; keeping the game's", e);
     if (v && !(g_q4 && [MTLFXSpatialScalerDescriptor supportsMetal4FX:g_dev])) { MLOG("upscaler: this GPU has no Metal 4 MetalFX spatial scaler; the game's own upscaler draws"); v = 0; }
     if (v) MLOG("upscaler (DM_UPSCALER): metalfx, the game's upscaler shaders (%d, from the shader map) are drawn by MetalFX's spatial scaler", DM_GAME_UPSCALER_N);

@@ -824,6 +824,9 @@ static void cheats_open_folder(void) {
 #ifndef DM_GAME_RENDER_SCALE_MARKS   // a header from game.py before these keys
 #define DM_GAME_RENDER_SCALE_MARKS ""
 #endif
+#ifndef DM_GAME_UPSCALER_DEFAULT
+#define DM_GAME_UPSCALER_DEFAULT "game"
+#endif
 #ifndef DM_GAME_RENDER_SCALE_DEFAULT
 #define DM_GAME_RENDER_SCALE_DEFAULT 1.0f
 #endif
@@ -943,7 +946,7 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
     self.gpu = ng ? g / ng : -1;
 }
 - (void)render {
-    const char *up = getenv("DM_UPSCALER");
+    const char *up = getenv("DM_UPSCALER"); if (!up || !*up) up = DM_GAME_UPSCALER_DEFAULT;
     self.text.stringValue = [NSString stringWithFormat:@"%@\n%.0f fps   frame %@   GPU %@\n%@\nUpscaler: %@   ·   ⌘= / ⌘- render scale   ·   ⌘P hide",
         perf_machine(), self.fps, self.fps > 0 ? [NSString stringWithFormat:@"%.1f ms", 1000.0 / self.fps] : @"–", self.gpu >= 0 ? [NSString stringWithFormat:@"%.1f ms", self.gpu] : @"–",
         perf_resolution(), up && !strcmp(up, "metalfx") ? @"MetalFX" : @"the game's"];
