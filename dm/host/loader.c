@@ -376,6 +376,11 @@ void dm_fps_state_apply(void) {
     // Hades II's 3.0). Independent of the frame step: written at target 0 too
     const char *rs = getenv("DM_RENDER_SCALE"); float sc = 1.0f, hi = g_render_scale_max;
     if (rs) { char *end; sc = strtof(rs, &end); if (end == rs || *end || !(sc >= 0.5f && sc <= hi)) { LOG("[RED] DM_RENDER_SCALE=%s: must be 0.5 to %.1f; keeping the game's size", rs, hi); sc = 1.0f; } else LOG("%s: 3D views rendered at %.2f of the game's size (DM_RENDER_SCALE)", g_fps_mod, sc); }
+#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
+    // GreenKid-MV: a game with the Resolution presets (Ocarina of Time) takes the render scale only when its Resolution is Render scale (DM_RES_PRESET=2); otherwise 0, which its
+    // stub reads as unset (patches.py render_scale), so the Normal / Potato overlay's levels stay the game's own. 1.0 would fix the full size and undo them
+    { const char *rp = getenv("DM_RES_PRESET"); if (!rp || atoi(rp) != 2) { if (rs && sc != 1.0f) LOG("DM_RENDER_SCALE=%s left out: the Resolution preset is not Render scale (DM_RES_PRESET=2)", rs); sc = 0.0f; } }
+#endif
     memcpy(dm_fps_state + 0x10, &sc, sizeof sc);
     // The game's own dynamic resolution, for builds whose stubs read it (the DYNAMIC_RESOLUTION capability of a frame step stub: Ocarina of Time's level function): 1 lets it
     // run, 0 (the default) holds full resolution. Builds without such a stub ignore the field

@@ -161,6 +161,20 @@ class LauncherSettingsTests(unittest.TestCase):
                 profile = type('Profile', (), {'id': BOTW, 'get': lambda self, key, default='', bad=bad: bad})()
                 with self.assertRaises(SystemExit): settings.render_base(profile)
 
+    def test_ocarina_render_scale_is_a_resolution_choice_with_named_steps(self):   # GreenKid-MV: Normal / Potato / Render scale, the slider in twelfths with its marks
+        with tempfile.TemporaryDirectory() as tmp:
+            (Path(tmp) / 'main.fixups.tsv').write_text('# RENDER_SCALE\t1\n')
+            rows = {s['env']: s for s in settings.build('0400486024DEC000', tmp, Path(tmp) / 'control.nacp')['settings']}
+        self.assertEqual([o[0] for o in rows['DM_RES_PRESET']['options']], ['0', '1', '2'])
+        rs = rows['DM_RENDER_SCALE']
+        self.assertEqual((rs['min'], rs['max'], rs['needs']), (0.5, 1.0, 'DM_RES_PRESET=2'))
+        marks = {round(float(v), 4): name for v, name in rs['marks']}
+        self.assertEqual(marks, {0.5: 'Potato', 0.6667: 'Normal', 1.0: 'Native'})
+        for k, name in ((0, 'Potato'), (2, 'Normal'), (6, 'Native')):   # each mark is a step of the slider, and a whole 16:9 size of 1920x1080
+            v = rs['min'] + k * rs['step']
+            self.assertEqual(marks[round(v, 4)], name)
+            self.assertEqual((round(1920 * float(f'{v:.4f}')), round(1080 * float(f'{v:.4f}'))), {0: (960, 540), 2: (1280, 720), 6: (1920, 1080)}[k])
+
     def test_render_scale_reaches_the_stubs_largest_scale(self):
         """The rewriter writes a render-scale stub's largest scale as RENDER_SCALE: 1 keeps the table's range (a stub that only lowers the size), 3 raises its top (Hades II)"""
         for value, top in (('1', 1.0), ('3', 3.0)):

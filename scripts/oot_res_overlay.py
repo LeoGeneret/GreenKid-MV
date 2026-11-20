@@ -9,7 +9,7 @@
 # Examples (docs/games/kid-with-sword-remake.md): into <romfs_overlay>/handheld, 0.666667 - flat = 1280x720; into <romfs_overlay>/docked, 0.9375 - flat = 1951x1098 (docked sizes come in
 # steps of about 45 pixels; 1920x1080 is not one). The host serves the subfolder for the console mode (hle_fs.c rom_overlay_set).
 # Needs the zstandard package (pip install zstandard). The game's files are read from your own dump; nothing of the game is in this repository.
-import sys, os, struct, zstandard
+import sys, os, struct, zstandard   # pyright: ignore[reportMissingImports]  # the player installs it (see above); dictionary-aware recompression
 img, out, top = sys.argv[1], sys.argv[2], float(sys.argv[3]); thr = float(sys.argv[4]) if len(sys.argv) > 4 and sys.argv[4] != '-' else None   # optional: every LoadThreshold set to this ('-' keeps them)
 flat = len(sys.argv) > 5 and sys.argv[5] == 'flat'   # every level at <top scale>: one fixed resolution, so the dynamic resolution never makes the game build a new set of render targets
 sys.path.insert(0, os.environ.get('DMT') or os.path.join(os.path.dirname(os.path.abspath(__file__)), '..', 'dm', 'tools')); import romfs_image as r
