@@ -96,7 +96,7 @@ It should end with `Prerequisite executables found.` Otherwise it names what is 
 ### 5. Build your game
 
 1. Open **Bowshot** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
-2. Click **Build My Local Game**. The log shows each stage.
+2. Click **Build My Local Game**. The button turns blue once the folder is valid (outside any Git repository, with your `.nup`, NSP files or dump in it); otherwise the line under it says what is missing. The log shows each stage.
    - The **first build takes an hour or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
    - The first run also installs a private Python into `~/Library/Application Support/Bowshot/`. It downloads Python packages only, never game files or keys.
 3. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.

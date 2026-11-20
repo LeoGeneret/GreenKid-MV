@@ -37,6 +37,8 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         choose.target = self; choose.action = #selector(chooseFolder)
         build.target = self; build.action = #selector(startBuild)
         reveal.target = self; reveal.action = #selector(showOutput); reveal.isEnabled = false
+        build.keyEquivalent = "\r"   // the window's default button: drawn in the accent blue while it is enabled
+        build.isEnabled = false        // until a valid game folder is chosen (folderProblem)
         let row = NSStackView(views: [folder, choose]); row.orientation = .horizontal
         folder.setContentHuggingPriority(.defaultLow, for: .horizontal)
         let buttons = NSStackView(views: [build, reveal]); buttons.orientation = .horizontal
@@ -75,7 +77,39 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         panel.canChooseDirectories = true; panel.canChooseFiles = false
         panel.canCreateDirectories = false; panel.allowsMultipleSelection = false
         panel.message = "Choose your own dump folder, outside any Git repository."
-        if panel.runModal() == .OK, let url = panel.url { folder.stringValue = url.path }
+        if panel.runModal() == .OK, let url = panel.url { folder.stringValue = url.path; updateBuildButton() }
+    }
+
+    // Why the chosen folder cannot be built, nil when it can: the checks bowshot_build.sh makes first (it exists, it is outside any Git repository and outside the
+    // builder), and that it holds a game: a .nup, NSP / XCI files (.nsp .nsz .xci .xcz) or a dump (base/). The script still checks the game and its update itself
+    func folderProblem(_ path: String) -> String? {
+        let fm = FileManager.default; var isDir: ObjCBool = false
+        guard !path.isEmpty else { return "Choose a folder containing your own game dump." }
+        guard fm.fileExists(atPath: path, isDirectory: &isDir), isDir.boolValue else { return "That folder no longer exists. Choose your game folder again." }
+        let url = URL(fileURLWithPath: path).resolvingSymlinksInPath()
+        var dir = url
+        while true {
+            if fm.fileExists(atPath: dir.appendingPathComponent(".git").path) { return "Choose a game folder outside a Git repository. Private game outputs must stay separate from source." }
+            let up = dir.deletingLastPathComponent(); if up.path == dir.path { break }; dir = up
+        }
+        if let res = Bundle.main.resourceURL?.resolvingSymlinksInPath().path, url.path == res || url.path.hasPrefix(res + "/") { return "Keep game files outside the builder." }
+        let names = (try? fm.contentsOfDirectory(atPath: url.path)) ?? []
+        let game = names.contains { n in
+            let e = (n as NSString).pathExtension.lowercased()
+            return !n.hasPrefix("._") && ["nup", "nsp", "nsz", "xci", "xcz"].contains(e)
+        }
+        var baseDir: ObjCBool = false
+        if !game && !(fm.fileExists(atPath: url.appendingPathComponent("base").path, isDirectory: &baseDir) && baseDir.boolValue) {
+            return "No game found in that folder: it needs your game's .nup file, its NSP files (base game and update v131072), or a dump folder."
+        }
+        return nil
+    }
+
+    // The Build button is enabled (and blue) only for a valid folder and while no build runs
+    func updateBuildButton() {
+        let problem = folderProblem(folder.stringValue)
+        build.isEnabled = process == nil && problem == nil
+        if process == nil { status.stringValue = problem ?? "Ready to build. The first full build can take an hour or more." }
     }
 
     func append(_ text: String) {
@@ -85,7 +119,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
     @objc func startBuild() {
         guard process == nil else { return }
-        guard !folder.stringValue.isEmpty else { status.stringValue = "Choose your game folder first."; return }
+        if let problem = folderProblem(folder.stringValue) { status.stringValue = problem; build.isEnabled = false; return }
         guard let resources = Bundle.main.resourceURL else { status.stringValue = "The app resources are missing."; return }
         let script = resources.appendingPathComponent("engine/scripts/bowshot_build.sh")
         guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
@@ -104,7 +138,8 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         task.terminationHandler = { [weak self] finished in
             DispatchQueue.main.async {
                 guard let self = self else { return }
-                self.process = nil; self.build.isEnabled = true; self.choose.isEnabled = true
+                self.process = nil; self.choose.isEnabled = true
+                self.build.isEnabled = self.folderProblem(self.folder.stringValue) == nil
                 self.status.stringValue = finished.terminationStatus == 0 ? "Local build ready. Keep the resulting game app private." : "Build stopped. The log above explains what to fix."
                 self.reveal.isEnabled = self.output.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             }
@@ -113,7 +148,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         log.string = ""; status.stringValue = "Building from your files. The first full build can take a long time."
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
-            build.isEnabled = true; choose.isEnabled = true
+            build.isEnabled = folderProblem(folder.stringValue) == nil; choose.isEnabled = true
             status.stringValue = "Could not start the builder: \(error.localizedDescription)"
         }
     }
