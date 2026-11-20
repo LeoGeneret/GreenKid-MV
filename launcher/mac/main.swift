@@ -9,7 +9,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let status = NSTextField(labelWithString: "Choose a folder containing your own game dump.")
     let build = NSButton(title: "Build My Local Game", target: nil, action: nil)
     let choose = NSButton(title: "Choose Game Folder…", target: nil, action: nil)
-    let reveal = NSButton(title: "Show Private Output", target: nil, action: nil)
+    let reveal = NSButton(title: "Open game folder", target: nil, action: nil)
     var process: Process?
     var output: URL?
 
@@ -109,7 +109,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func updateBuildButton() {
         let problem = folderProblem(folder.stringValue)
         build.isEnabled = process == nil && problem == nil
-        if process == nil { status.stringValue = problem ?? "Ready to build. The first full build can take an hour or more." }
+        if process == nil { status.stringValue = problem ?? "Ready to build. The first full build can take 1.5+ hours." }
     }
 
     func append(_ text: String) {

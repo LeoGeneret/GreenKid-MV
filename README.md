@@ -97,7 +97,7 @@ It should end with `Prerequisite executables found.` Otherwise it names what is 
 
 1. Open **Bowshot** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
 2. Click **Build My Local Game**. The button turns blue once the folder is valid (outside any Git repository, with your `.nup`, NSP files or dump in it); otherwise the line under it says what is missing. The log shows each stage.
-   - The **first build takes an hour or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
+   - The **first build takes 1.5 hours or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
    - The first run also installs a private Python into `~/Library/Application Support/Bowshot/`. It downloads Python packages only, never game files or keys.
 3. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.
 
@@ -105,7 +105,7 @@ Building again later reuses everything that is still valid, so it is much faster
 
 ### 6. Play
 
-1. Click **Show Private Output**. It opens `Bowshot-local` inside your game folder.
+1. Click **Open game folder**. It opens `Bowshot-local` inside your game folder.
 2. Open **Ocarina of Time.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
 3. A settings window appears before the game starts. Under **Game → Resolution** pick **Normal** (1280×720), **Potato** (960×540) or **Render scale**, a slider with both marked on it; you can change it at every start, no rebuild needed. While playing, **⌥⌘P** shows or hides Apple's Metal HUD, **⌘P** shows or hides the performance panel and, with Resolution set to Render scale, **⌘=** / **⌘-** change it one step at a time (View menu). Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
 4. **Quit** with **⌘Q**, or hold the controller's **Home** button for 2 seconds and press **A**. Progress the game hasn't saved is lost, so save in-game first.
