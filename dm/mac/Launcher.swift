@@ -119,52 +119,6 @@ enum SaveCheck {
     }
 }
 
-/// GreenKid-MV: the resolution test (scripts/greenkid_bench.sh), offered in an Ocarina of Time app the GreenKid-MV builder made: the app sits in <game folder>/GreenKid-MV-local,
-/// beside greenkid-engine.txt, the engine folder greenkid_build.sh used. The test plays the field-run route in Hyrule Field from this app's save at the 7 Render scale steps, twice
-/// each, in game windows of its own, so the launcher quits once it has started it; the script opens the table when it ends (its output: GreenKid-MV-local/bench/test.log)
-enum GreenKidTest {
-    static let gameID = "0400486024DEC000"
-    /// The script and the game folder, when this app can run the test
-    static func available() -> (script: URL, folder: URL)? {
-        guard (info("DMTitleID") ?? "").uppercased() == gameID else { return nil }
-        let local = Bundle.main.bundleURL.deletingLastPathComponent()
-        guard local.lastPathComponent == "GreenKid-MV-local",
-              let engine = try? String(contentsOf: local.appendingPathComponent("greenkid-engine.txt"), encoding: .utf8).trimmingCharacters(in: .whitespacesAndNewlines),
-              !engine.isEmpty else { return nil }
-        let script = URL(fileURLWithPath: engine).appendingPathComponent("scripts/greenkid_bench.sh")
-        guard FileManager.default.fileExists(atPath: script.path) else { return nil }
-        return (script, local.deletingLastPathComponent())
-    }
-
-    /// Asks, then starts the test on its own (it outlives this process). true: started, the launcher quits
-    static func confirmAndStart() -> Bool {
-        guard let t = available() else { return false }
-        let a = NSAlert()
-        a.messageText = "Test the 7 resolutions in Hyrule Field?"
-        a.informativeText = "The game starts 14 times by itself from your last save (it must be in Hyrule Field): each Render scale step, 960×540 to 1920×1080, twice, along the same walk. "
-            + "It takes about 35 minutes: keep the Mac plugged in and don't use it meanwhile. Your save is not changed. The results table opens at the end.\n\nThis window closes now."
-        a.addButton(withTitle: "Start Test")
-        a.addButton(withTitle: "Cancel")
-        guard a.runModal() == .alertFirstButtonReturn else { return false }
-        let bench = t.folder.appendingPathComponent("GreenKid-MV-local/bench")
-        try? FileManager.default.createDirectory(at: bench, withIntermediateDirectories: true)
-        let logURL = bench.appendingPathComponent("test.log")
-        FileManager.default.createFile(atPath: logURL.path, contents: nil)
-        guard let log = try? FileHandle(forWritingTo: logURL) else { return false }
-        let p = Process()
-        p.executableURL = URL(fileURLWithPath: "/bin/bash")
-        // getenv: launcher.c set DM_SAVE (this app's save folder) in this process before the window
-        p.arguments = [t.script.path, t.folder.path] + (getenv("DM_SAVE").map { [String(cString: $0)] } ?? []) + ["--open"]
-        p.standardOutput = log; p.standardError = log; p.standardInput = FileHandle.nullDevice
-        do { try p.run() } catch {
-            let e = NSAlert(); e.messageText = "The test could not start"; e.informativeText = error.localizedDescription; e.runModal()
-            return false
-        }
-        fputs("launcher: GreenKid-MV resolution test started (pid \(p.processIdentifier)), output in \(logURL.path)\n", stderr)
-        return true
-    }
-}
-
 struct LauncherView: View {
     @ObservedObject var m: LauncherModel
     let done: (Bool) -> Void
@@ -215,10 +169,6 @@ struct LauncherView: View {
                     ProgressView().controlSize(.small)
                     Text("Checking the cloud save…").foregroundStyle(.secondary)
                     Button("Play Without It") { checking = false; SaveCheck.apply("offline"); done(true) }
-                }
-                if GreenKidTest.available() != nil, !checking {
-                    Button("Test Resolutions…") { if GreenKidTest.confirmAndStart() { done(false) } }
-                        .help("Measures the frame rate at the 7 Render scale steps in Hyrule Field (about 35 minutes), from your save")
                 }
                 Button("Quit") { done(false) }
                 Button("Play") { start() }.keyboardShortcut(.defaultAction).disabled(checking)

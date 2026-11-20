@@ -84,19 +84,14 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     }
 
     @objc func startBuild() {
-        run(script: "greenkid_build.sh", arguments: ["--build", folder.stringValue], starting: "Building from your files. The first full build can take a long time.",
-            done: "Local build ready. Keep the resulting game app private.", failed: "Build stopped. The log above explains what to fix.", results: nil)
-    }
-
-    func run(script name: String, arguments: [String], starting: String, done: String, failed: String, results: URL?) {
         guard process == nil else { return }
         guard !folder.stringValue.isEmpty else { status.stringValue = "Choose your game folder first."; return }
         guard let resources = Bundle.main.resourceURL else { status.stringValue = "The app resources are missing."; return }
-        let script = resources.appendingPathComponent("engine/scripts/\(name)")
+        let script = resources.appendingPathComponent("engine/scripts/greenkid_build.sh")
         guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
-        task.arguments = [script.path] + arguments
+        task.arguments = [script.path, "--build", folder.stringValue]
         let pipe = Pipe()
         task.standardOutput = pipe; task.standardError = pipe
         task.standardInput = FileHandle.nullDevice
@@ -110,13 +105,12 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
             DispatchQueue.main.async {
                 guard let self = self else { return }
                 self.process = nil; self.build.isEnabled = true; self.choose.isEnabled = true
-                self.status.stringValue = finished.terminationStatus == 0 ? done : failed
-                if let r = results, FileManager.default.fileExists(atPath: r.path) { NSWorkspace.shared.open(r) }
+                self.status.stringValue = finished.terminationStatus == 0 ? "Local build ready. Keep the resulting game app private." : "Build stopped. The log above explains what to fix."
                 self.reveal.isEnabled = self.output.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             }
         }
         output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("GreenKid-MV-local")
-        log.string = ""; status.stringValue = starting
+        log.string = ""; status.stringValue = "Building from your files. The first full build can take a long time."
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
             build.isEnabled = true; choose.isEnabled = true
@@ -137,8 +131,8 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard process != nil else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "A local build is still running"
-        alert.informativeText = "Keep GreenKid-MV open until it finishes. Closing the window does not cancel the engine's jobs."
-        alert.addButton(withTitle: "Keep Running")
+        alert.informativeText = "Keep GreenKid-MV open until it finishes. Closing the window does not cancel the engine's compiler jobs."
+        alert.addButton(withTitle: "Keep Building")
         alert.runModal()
         return .terminateCancel
     }
@@ -146,7 +140,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
 if CommandLine.arguments.contains("--self-check") {
     let resources = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources")
-    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/greenkid_build.sh", "engine/scripts/greenkid_bench.sh", "engine/scripts/build_ipa_from_nsp.py", "engine/scripts/bench.py", "Documentation/CREDITS.md"]
+    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/greenkid_build.sh", "engine/scripts/build_ipa_from_nsp.py", "Documentation/CREDITS.md"]
     let missing = required.filter { !FileManager.default.fileExists(atPath: resources.appendingPathComponent($0).path) }
     if !missing.isEmpty { fputs("Missing builder resources: \(missing.joined(separator: ", "))\n", stderr); exit(1) }
     print("GreenKid-MV builder resources verified; no game is required for this check.")

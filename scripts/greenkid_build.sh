@@ -78,6 +78,4 @@ DM_FPS_TARGET=60
 SETTINGS
 fi
 "$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" --fallback-icon "$ENGINE_DIR/launcher/mac/AppIcon.png" -o "$OUTPUT_APP" --progress lines 2>&1 | tee -a "$BUILD_LOG"
-# The game app's Test Resolutions button (dm/mac/Launcher.swift GreenKidTest) runs this engine's scripts/greenkid_bench.sh: its folder, beside the app
-printf '%s\n' "$ENGINE_DIR" > "$PRIVATE_DIR/greenkid-engine.txt"
 printf '\nREADY: %s\nThis app contains your game. Keep it private; do not upload it.\n' "$OUTPUT_APP"
