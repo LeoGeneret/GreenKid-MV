@@ -1,17 +1,18 @@
 #!/bin/bash
 # SPDX-License-Identifier: MIT
 # Builds only from the player's files. No game data belongs in this repository.
+# A blocking error is one line that starts with ERROR: (the builder window shows it in red); the finished app is the line READY: <path> (green).
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 SOURCE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 SUPPORT_DIR="${BOWSHOT_SUPPORT_DIR:-$HOME/Library/Application Support/Bowshot}"
 
 doctor() {
-  [[ "$(uname -m)" == arm64 ]] || { echo 'Apple silicon is required.'; return 1; }
-  command -v uv >/dev/null || { echo 'Install the prerequisite tools shown in the README (uv is missing).'; return 1; }
-  xcrun --find metal >/dev/null 2>&1 || { echo 'Install Xcode 27.2 and its Metal Toolchain, then open Xcode once.'; return 1; }
+  [[ "$(uname -m)" == arm64 ]] || { echo 'ERROR: Apple silicon is required.'; return 1; }
+  command -v uv >/dev/null || { echo 'ERROR: Install the prerequisite tools shown in the README (uv is missing).'; return 1; }
+  xcrun --find metal >/dev/null 2>&1 || { echo 'ERROR: Install Xcode 27.2 and its Metal Toolchain, then open Xcode once.'; return 1; }
   for tool in xcodegen zstd glslangValidator; do
-    command -v "$tool" >/dev/null || { echo "Missing prerequisite: $tool. See the README."; return 1; }
+    command -v "$tool" >/dev/null || { echo "ERROR: Missing prerequisite: $tool. See the README."; return 1; }
   done
 }
 
@@ -23,13 +24,13 @@ esac
 GAME_DIR="${1:?Choose a folder containing your own game dump}"
 # The resolution (Normal, Potato or the Render scale slider) is chosen in the game app's launcher window at each start: both overlays are packed. An older
 # second argument (normal | performance) is accepted and ignored
-[[ -d "$GAME_DIR" ]] || { echo 'The game folder does not exist.'; exit 2; }
+[[ -d "$GAME_DIR" ]] || { echo 'ERROR: The game folder does not exist.'; exit 2; }
 GAME_DIR="$(cd "$GAME_DIR" && pwd -P)"
 if git -C "$GAME_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
-  echo 'Choose a game folder outside a Git repository. Private game outputs must stay separate from source.'
+  echo 'ERROR: Choose a game folder outside a Git repository. Private game outputs must stay separate from source.'
   exit 2
 fi
-case "$GAME_DIR/" in "$SOURCE_ROOT/"*) echo 'Keep game files outside the builder source.'; exit 2;; esac
+case "$GAME_DIR/" in "$SOURCE_ROOT/"*) echo 'ERROR: Keep game files outside the builder source.'; exit 2;; esac
 doctor
 mkdir -p "$SUPPORT_DIR"
 REVISION="$(tr -d '\r\n' < "$SOURCE_ROOT/UPSTREAM-REVISION")"
@@ -59,7 +60,7 @@ ENV_FILE="$PRIVATE_DIR/runtime.env"
 printf '# Local settings for the app built from your dump\n' > "$ENV_FILE"
 if grep -q 'game profile: 0400486024DEC000' "$BUILD_LOG"; then
   IMAGE="$WORK_DIR/extract/v131072/RomFS.img"
-  [[ -f "$IMAGE" ]] || { echo 'The supported Ocarina of Time v131072 RomFS image was not found.'; exit 1; }
+  [[ -f "$IMAGE" ]] || { echo 'ERROR: The supported Ocarina of Time v131072 RomFS image was not found.'; exit 1; }
   "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/handheld" 0.666667 - flat
   "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/potato-handheld" 0.75 - flat
   cat >> "$ENV_FILE" <<'SETTINGS'

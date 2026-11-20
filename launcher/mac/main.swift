@@ -12,6 +12,16 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     let reveal = NSButton(title: "Open game folder", target: nil, action: nil)
     var process: Process?
     var output: URL?
+    var pending = ""                 // the end of the output that has no newline yet: a line is coloured once it is whole
+    var sawError = false             // an ERROR: line was shown
+    var lastWarning: NSRange?        // the last [RED] line of the engine: when the build fails, it is the reason, shown in red
+
+    enum Tone { case normal, error, ready }
+    // The status line under the buttons: red for a blocking error, green when the game app is ready
+    func setStatus(_ text: String, _ tone: Tone = .normal) {
+        status.stringValue = text
+        status.textColor = tone == .error ? .systemRed : tone == .ready ? .systemGreen : .labelColor
+    }
 
     func applicationDidFinishLaunching(_ notification: Notification) {
         let menu = NSMenu()
@@ -109,20 +119,39 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
     func updateBuildButton() {
         let problem = folderProblem(folder.stringValue)
         build.isEnabled = process == nil && problem == nil
-        if process == nil { status.stringValue = problem ?? "Ready to build. The first full build can take 1.5+ hours." }
+        if process == nil { if let problem = problem { setStatus(problem, .error) } else { setStatus("Ready to build. The first full build can take 1.5+ hours.") } }
     }
 
-    func append(_ text: String) {
-        log.textStorage?.append(NSAttributedString(string: text, attributes: [.foregroundColor: NSColor.textColor, .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)]))
+    // The log, line by line: bowshot_build.sh's blocking errors (ERROR: ) in red, the engine's warnings ([RED] ) in orange, the finished app (READY: and the line
+    // after it) in green, everything else in the text colour
+    func append(_ text: String, flush: Bool = false) {
+        pending += text
+        var lines = pending.components(separatedBy: "\n")
+        let tail = lines.removeLast()
+        for line in lines { appendLine(line) }
+        if flush { if !tail.isEmpty { appendLine(tail) }; pending = "" } else { pending = tail }
         log.scrollToEndOfDocument(nil)
+    }
+    var readyNext = false
+    func appendLine(_ line: String) {
+        let color: NSColor
+        if line.hasPrefix("ERROR: ") { color = .systemRed; sawError = true }
+        else if line.hasPrefix("READY: ") || readyNext { color = .systemGreen }
+        else if line.hasPrefix("[RED] ") { color = .systemOrange }
+        else { color = .textColor }
+        readyNext = line.hasPrefix("READY: ")
+        guard let storage = log.textStorage else { return }
+        let start = storage.length
+        storage.append(NSAttributedString(string: line + "\n", attributes: [.foregroundColor: color, .font: NSFont.monospacedSystemFont(ofSize: 11, weight: .regular)]))
+        if line.hasPrefix("[RED] ") { lastWarning = NSRange(location: start, length: (line as NSString).length) }
     }
 
     @objc func startBuild() {
         guard process == nil else { return }
-        if let problem = folderProblem(folder.stringValue) { status.stringValue = problem; build.isEnabled = false; return }
-        guard let resources = Bundle.main.resourceURL else { status.stringValue = "The app resources are missing."; return }
+        if let problem = folderProblem(folder.stringValue) { setStatus(problem, .error); build.isEnabled = false; return }
+        guard let resources = Bundle.main.resourceURL else { setStatus("The app resources are missing.", .error); return }
         let script = resources.appendingPathComponent("engine/scripts/bowshot_build.sh")
-        guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
+        guard FileManager.default.fileExists(atPath: script.path) else { setStatus("Builder files are missing; use a complete release archive.", .error); return }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
         task.arguments = [script.path, "--build", folder.stringValue]
@@ -140,16 +169,22 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 guard let self = self else { return }
                 self.process = nil; self.choose.isEnabled = true
                 self.build.isEnabled = self.folderProblem(self.folder.stringValue) == nil
-                self.status.stringValue = finished.terminationStatus == 0 ? "Local build ready. Keep the resulting game app private." : "Build stopped. The log above explains what to fix."
+                self.append("", flush: true)
+                if finished.terminationStatus == 0 { self.setStatus("Local build ready. Keep the resulting game app private.", .ready) }
+                else {
+                    self.setStatus("Build stopped. The red line in the log explains what to fix.", .error)
+                    if let r = self.lastWarning, let storage = self.log.textStorage, NSMaxRange(r) <= storage.length { storage.addAttribute(.foregroundColor, value: NSColor.systemRed, range: r) }   // the engine's reason
+                    else if !self.sawError { self.appendLine("ERROR: The build stopped (exit \(finished.terminationStatus)) without a message. The full log is build.log in Bowshot-local.") }
+                }
                 self.reveal.isEnabled = self.output.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             }
         }
         output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("Bowshot-local")
-        log.string = ""; status.stringValue = "Building from your files. The first full build can take a long time."
+        log.string = ""; pending = ""; lastWarning = nil; sawError = false; readyNext = false; setStatus("Building from your files. The first full build can take 1.5+ hours.")
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
             build.isEnabled = folderProblem(folder.stringValue) == nil; choose.isEnabled = true
-            status.stringValue = "Could not start the builder: \(error.localizedDescription)"
+            setStatus("Could not start the builder: \(error.localizedDescription)", .error)
         }
     }
 
