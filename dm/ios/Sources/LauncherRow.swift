@@ -17,10 +17,10 @@ struct SettingRow: View {
     }
     private var rangeValue: Binding<Double> {
         Binding(get: { Double(m.values[s.env] ?? s.def) ?? s.max ?? 1 },
-                set: { m.values[s.env] = String(format: "%.4f", $0) })   // GreenKid-MV: 4 decimals, so a twelfth step stays on its whole size (0.6667 of 1920x1080 = 1280x720, not 0.67)
+                set: { m.values[s.env] = String(format: "%.4f", $0) })   // Bowshot: 4 decimals, so a twelfth step stays on its whole size (0.6667 of 1920x1080 = 1280x720, not 0.67)
     }
     private var percentage: String { m.rangeLabel(s, rangeValue.wrappedValue) }
-    // GreenKid-MV: a range's named values (Ocarina of Time's Potato, Normal, Native) as fractions of the slider's width, written under it at their steps
+    // Bowshot: a range's named values (Ocarina of Time's Potato, Normal, Native) as fractions of the slider's width, written under it at their steps
     private var markPlaces: [(name: String, at: Double)] {
         guard let marks = s.marks, let lo = s.min, let hi = s.max, hi > lo else { return [] }
         return marks.compactMap { mk in mk.count == 2 ? Double(mk[0]).map { (name: mk[1], at: ($0 - lo) / (hi - lo)) } : nil }.filter { $0.at >= 0 && $0.at <= 1 }

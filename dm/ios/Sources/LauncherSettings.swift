@@ -30,7 +30,7 @@ struct Setting: Decodable, Identifiable {
         default: return true
         }
     }
-    let marks: [[String]]?   // range: [value, label] names for values (GreenKid-MV: Ocarina of Time's Potato, Normal and Native render scales; from kid-with-sword-remake)
+    let marks: [[String]]?   // range: [value, label] names for values (Bowshot: Ocarina of Time's Potato, Normal and Native render scales; from kid-with-sword-remake)
     enum CodingKeys: String, CodingKey { case env, kind, label, note, def = "default", section, needs, level, base, options, min, max, step, marks, on, off }
 }
 struct SettingsFile: Decodable { let settings: [Setting] }

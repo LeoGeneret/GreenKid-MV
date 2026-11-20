@@ -33,7 +33,7 @@ Off, the default, keeps the 3D picture at full size. On lets the game lower its 
 
 ### Resolution
 
-GreenKid-MV, Ocarina of Time only. **Normal** renders the 3D picture at 1280×720 handheld (1951×1098 docked). **Potato** is the game's lighter mode: 960×540 shown at 720p, for the coolest and longest-lasting play. **Render scale** fixes the 3D size with the **Render scale** slider, which is drawn only with this choice; Potato (50 %), Normal (67 %) and Native (100 %) are written under it. ⌘= and ⌘- change it while you play ([The View menu](#the-view-menu)).
+Bowshot, Ocarina of Time only. **Normal** renders the 3D picture at 1280×720 handheld (1951×1098 docked). **Potato** is the game's lighter mode: 960×540 shown at 720p, for the coolest and longest-lasting play. **Render scale** fixes the 3D size with the **Render scale** slider, which is drawn only with this choice; Potato (50 %), Normal (67 %) and Native (100 %) are written under it. ⌘= and ⌘- change it while you play ([The View menu](#the-view-menu)).
 
 ### Render scale
 
@@ -198,7 +198,7 @@ The app turns the game's graphics commands into Metal commands on a thread of it
 
 ### Texture Memory Saver
 
-GreenKid-MV, from kid-with-sword-remake: large textures are made without their sharpest detail level, about a quarter of their memory and shorter area loads, slightly softer close up. Off by default; turn it on for a Mac with little memory. In an `env.txt`: `DM_NVN_TEX_MIP_SKIP=512`.
+Bowshot, from kid-with-sword-remake: large textures are made without their sharpest detail level, about a quarter of their memory and shorter area loads, slightly softer close up. Off by default; turn it on for a Mac with little memory. In an `env.txt`: `DM_NVN_TEX_MIP_SKIP=512`.
 
 ### Hold frames when late
 
@@ -253,7 +253,7 @@ Turn off **Show this window at launch** to start the game at once with your choi
 
 ### The View menu
 
-GreenKid-MV, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Show Metal HUD** (⌥⌘P) shows or hides Apple's Metal Performance HUD over the game, with its frame-time graph, and keeps the choice as [Performance HUD](#performance-hud)'s for the next start. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
+Bowshot, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Show Metal HUD** (⌥⌘P) shows or hides Apple's Metal Performance HUD over the game, with its frame-time graph, and keeps the choice as [Performance HUD](#performance-hud)'s for the next start. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
 ## Cloud saves
 
 The Mac app and the iPhone app of one game can share a save through iCloud Drive. Choose the same iCloud Drive folder on both: **Cloud saves** › **Choose a folder…** in the Mac settings window, and **Cloud saves** in the iPhone launcher (any folder, for instance one named **nxnative Saves**). Each game keeps one file there, `<title ID>/save.dmsync`, which holds the whole save.

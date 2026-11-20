@@ -18,6 +18,6 @@ Keep this file, `LICENSE`, `CREDITS.md`, `AUTHORS.md`, and the component licence
 | MacNativeGames | `dm/third_party/macnativegames/LICENSE` and the upstream attribution notes |
 | deko3d-derived layout code and NVN declarations | Notices retained in `dm/gfx/nvn/nvn_tex.c` and `dm/gfx/nvn/include/nvn.h` |
 
-The extraction tool references LibHac through its package configuration; other tools likewise retain their package references. Python, Python packages, Homebrew, Xcode and the .NET SDK are installed on the player’s own machine, not included as game data or claimed as GreenKid-MV work. The translator’s prebuilt supporting assemblies retain their upstream identities; package metadata and licence notices are preserved under `LICENSES/translator-packages/`, including Humanizer’s bundled component notices.
+The extraction tool references LibHac through its package configuration; other tools likewise retain their package references. Python, Python packages, Homebrew, Xcode and the .NET SDK are installed on the player’s own machine, not included as game data or claimed as Bowshot work. The translator’s prebuilt supporting assemblies retain their upstream identities; package metadata and licence notices are preserved under `LICENSES/translator-packages/`, including Humanizer’s bundled component notices.
 
 See `dm/third_party/README.md` for component versions, modifications and usage. This notice is attribution documentation, not a claim of legal clearance for an arbitrary downstream release.

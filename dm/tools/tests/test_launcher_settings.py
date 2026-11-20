@@ -161,7 +161,7 @@ class LauncherSettingsTests(unittest.TestCase):
                 profile = type('Profile', (), {'id': BOTW, 'get': lambda self, key, default='', bad=bad: bad})()
                 with self.assertRaises(SystemExit): settings.render_base(profile)
 
-    def test_ocarina_render_scale_is_a_resolution_choice_with_named_steps(self):   # GreenKid-MV: Normal / Potato / Render scale, the slider in twelfths with its marks
+    def test_ocarina_render_scale_is_a_resolution_choice_with_named_steps(self):   # Bowshot: Normal / Potato / Render scale, the slider in twelfths with its marks
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'main.fixups.tsv').write_text('# RENDER_SCALE\t1\n')
             rows = {s['env']: s for s in settings.build('0400486024DEC000', tmp, Path(tmp) / 'control.nacp')['settings']}

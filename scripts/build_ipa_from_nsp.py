@@ -3080,7 +3080,7 @@ def mac_app(py, repo, out, app, work, game, patched, host, font, msl, aoc, gfx, 
         if v: cmd += [opt, v]
     for n, r in (programs or {}).items(): cmd += ['--program', f'{n}\t{r["patched"]}\t{r["romfs"]}\t{r["msl"]}\t{r["tables"]}\t{r["html"]}']
     if (game / 'html').is_dir(): cmd += ['--html', game / 'html']
-    # fork (kid-with-sword-remake / GreenKid-MV): game file replacements beside the RomFS: romfs_overlay_mac when the Mac app's differ from the IPA's (Ocarina of Time: the resolution
+    # fork (kid-with-sword-remake / Bowshot): game file replacements beside the RomFS: romfs_overlay_mac when the Mac app's differ from the IPA's (Ocarina of Time: the resolution
     # presets, scripts/oot_res_overlay.py from the player's own dump), else romfs_overlay; served over the RomFS by the launcher's DM_ROMFS_OVERLAY (hle_fs.c rom_overlay_set)
     overlay = next((d for d in (game / 'romfs_overlay_mac', game / 'romfs_overlay') if d.is_dir()), None)
     if overlay: cmd += ['--romfs-overlay', overlay]; say(f'game file replacements: {overlay}')

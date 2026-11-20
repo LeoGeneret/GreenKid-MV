@@ -21,15 +21,15 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         creditsItem.target = self
         appMenu.addItem(creditsItem)
         appMenu.addItem(.separator())
-        appMenu.addItem(withTitle: "Quit GreenKid-MV", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
+        appMenu.addItem(withTitle: "Quit Bowshot", action: #selector(NSApplication.terminate(_:)), keyEquivalent: "q")
         item.submenu = appMenu
         menu.addItem(item)
         NSApp.mainMenu = menu
         window = NSWindow(contentRect: NSRect(x: 0, y: 0, width: 840, height: 620), styleMask: [.titled, .closable, .miniaturizable, .resizable], backing: .buffered, defer: false)
-        window.title = "GreenKid-MV — Local Game Builder"
+        window.title = "Bowshot — Local Game Builder"
         window.delegate = self
         window.minSize = NSSize(width: 720, height: 560)
-        let title = NSTextField(labelWithString: "GreenKid-MV")
+        let title = NSTextField(labelWithString: "Bowshot")
         title.font = .boldSystemFont(ofSize: 25)
         let subtitle = NSTextField(wrappingLabelWithString: "A Mac builder powered by nxnative. No game, console keys, saves or game shaders are included. Your game is built locally and must stay private.")
         folder.placeholderString = "Your game folder stays outside the source repository"
@@ -87,7 +87,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard process == nil else { return }
         guard !folder.stringValue.isEmpty else { status.stringValue = "Choose your game folder first."; return }
         guard let resources = Bundle.main.resourceURL else { status.stringValue = "The app resources are missing."; return }
-        let script = resources.appendingPathComponent("engine/scripts/greenkid_build.sh")
+        let script = resources.appendingPathComponent("engine/scripts/bowshot_build.sh")
         guard FileManager.default.fileExists(atPath: script.path) else { status.stringValue = "Builder files are missing; use a complete release archive."; return }
         let task = Process()
         task.executableURL = URL(fileURLWithPath: "/bin/bash")
@@ -109,7 +109,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
                 self.reveal.isEnabled = self.output.map { FileManager.default.fileExists(atPath: $0.path) } ?? false
             }
         }
-        output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("GreenKid-MV-local")
+        output = URL(fileURLWithPath: folder.stringValue).appendingPathComponent("Bowshot-local")
         log.string = ""; status.stringValue = "Building from your files. The first full build can take a long time."
         build.isEnabled = false; choose.isEnabled = false; reveal.isEnabled = false
         do { try task.run(); process = task } catch {
@@ -131,7 +131,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         guard process != nil else { return .terminateNow }
         let alert = NSAlert()
         alert.messageText = "A local build is still running"
-        alert.informativeText = "Keep GreenKid-MV open until it finishes. Closing the window does not cancel the engine's compiler jobs."
+        alert.informativeText = "Keep Bowshot open until it finishes. Closing the window does not cancel the engine's compiler jobs."
         alert.addButton(withTitle: "Keep Building")
         alert.runModal()
         return .terminateCancel
@@ -140,10 +140,10 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
 
 if CommandLine.arguments.contains("--self-check") {
     let resources = URL(fileURLWithPath: CommandLine.arguments[0]).resolvingSymlinksInPath().deletingLastPathComponent().deletingLastPathComponent().appendingPathComponent("Resources")
-    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/greenkid_build.sh", "engine/scripts/build_ipa_from_nsp.py", "Documentation/CREDITS.md"]
+    let required = ["engine/LICENSE", "engine/UPSTREAM-REVISION", "engine/scripts/bowshot_build.sh", "engine/scripts/build_ipa_from_nsp.py", "Documentation/CREDITS.md"]
     let missing = required.filter { !FileManager.default.fileExists(atPath: resources.appendingPathComponent($0).path) }
     if !missing.isEmpty { fputs("Missing builder resources: \(missing.joined(separator: ", "))\n", stderr); exit(1) }
-    print("GreenKid-MV builder resources verified; no game is required for this check.")
+    print("Bowshot builder resources verified; no game is required for this check.")
     exit(0)
 }
 let application = NSApplication.shared

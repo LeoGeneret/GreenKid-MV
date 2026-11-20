@@ -1,29 +1,29 @@
-<p align="center"><img src="launcher/mac/AppIcon.png" alt="GreenKid-MV icon: a green hat" width="160"></p>
+<p align="center"><img src="launcher/mac/AppIcon.png" alt="Bowshot icon: a bow and arrow" width="160"></p>
 
-# GreenKid-MV - (Experimental Work)
+# Bowshot - (Experimental Work)
 
 A local Mac game builder based on **nxnative**, with the Ocarina of Time work from **kid-with-sword-remake**. Choose your own game dump, build it on your Mac, and keep the result on your machine.
 
-GreenKid-MV packages other developers’ native-execution work with a small Mac launcher. It is not an independently developed replacement for nxnative. The game’s ARM code runs through nxnative’s runtime and Metal graphics layer rather than a conventional full-system emulator.
+Bowshot packages other developers’ native-execution work with a small Mac launcher. It is not an independently developed replacement for nxnative. The game’s ARM code runs through nxnative’s runtime and Metal graphics layer rather than a conventional full-system emulator.
 
 > [!IMPORTANT]
-> The public source and the GreenKid-MV launcher exclude commercial game dumps, console keys, extracted game programs, game assets, translated game shaders and personal saves. The few binary parser fixtures in the source are manufactured test headers, checked against pinned hashes.
+> The public source and the Bowshot launcher exclude commercial game dumps, console keys, extracted game programs, game assets, translated game shaders and personal saves. The few binary parser fixtures in the source are manufactured test headers, checked against pinned hashes.
 >
-> You supply your own lawfully obtained dump. A game app produced from that dump contains game material and is **not a shareable GreenKid-MV release**. Keep that output private.
+> You supply your own lawfully obtained dump. A game app produced from that dump contains game material and is **not a shareable Bowshot release**. Keep that output private.
 
 ## Status
 
-**Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. On this branch the engine is upstream nxnative's code as of 21 Nov 2026 (`seedds/nxnative` main `8c94bd1e`) plus GreenKid-MV's additions and two changes from kid-with-sword-remake, pinned as `greenkid-v2.2-nxnative-8c94bd1e` (0.3.0 had main `ab41d6a1`); it does not silently track upstream updates. See [What's new on this branch](#whats-new-on-this-branch).
+**Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. The engine is upstream nxnative's code as of 21 Nov 2026 (`seedds/nxnative` main `8c94bd1e`) plus Bowshot's additions and changes from kid-with-sword-remake, pinned as `bowshot-0.1.0-nxnative-8c94bd1e`; it does not silently track upstream updates. See [What's new](#whats-new).
 
-It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, the Normal / Potato resolution presets and settings tuned to hold 60 FPS without overheating a fanless Mac (see [What's new in 0.3.0](#whats-new-in-030)). In the maintainer's own play-testing on a fanless MacBook Air, 0.2.0 ran smoothly with the lighting flicker gone; 0.3.0 is in that same testing now. It is still a preview: results on other Macs, dumps and areas have not been certified. The local Zelda performance investigation remains separate from the public launcher.
+It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, the Normal / Potato resolution presets with a Render scale slider, and settings tuned to hold 60 FPS without overheating a fanless Mac. It is still a preview: results on other Macs, dumps and areas have not been certified.
 
 ## Download
 
-**Latest: [GreenKid-MV 0.3.0-preview](https://github.com/adi0900/GreenKid-MV/releases/tag/v0.3.0-preview)** (Apple silicon). Get `GreenKid-MV-0.3.0-preview-macOS-arm64.zip` from that page, then follow [Setup and running](#setup-and-running). The download is the builder only: no game files are included.
+No Bowshot release has been published yet: build the builder from source ([Building Bowshot](#building-bowshot)), or take the newest `Bowshot-<version>-macOS-arm64.zip` from this repository's [Releases](https://github.com/LeoGeneret/Bowshot/releases) once there is one, then follow [Setup and running](#setup-and-running). The download is the builder only: no game files are included.
 
-## What's new on this branch
+## What's new
 
-Not released yet: build it from source ([Building GreenKid-MV](#building-greenkid-mv)) to try it. The first build converts every shader again (the shader chain version changed).
+The first build converts every shader (the shader chain version changed).
 
 - **Engine moved to upstream nxnative main `8c94bd1e`** (21 Nov 2026, about 635 more upstream commits). Among the latest: Ocarina of Time's foliage no longer crashes Apple's mesh compiler on macOS 26.6 (#3069), its shader map drops a false shader (#3010), shader library files are unmapped once loaded (less memory), and the audio thread gets a real-time deadline.
 - **Upscaling:** MetalFX now draws Ocarina of Time's own upscaler networks through upstream's code (every NDSR pack, `_vr` packs included; about 1.4 ms less GPU a frame measured upstream on an M4 Pro with **Game's upscaler: MetalFX**), reads the game's texture in its own format, and takes the game's bias mask as its reactive mask.
@@ -35,44 +35,21 @@ Not released yet: build it from source ([Building GreenKid-MV](#building-greenki
 - **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
 - Kept: resolution presets, game-file overlays, the GPU-hang watchdog, the dispatch and texel-fetch clamps.
 - Removed as unused by default: the M1/M2 task isolation (`DM_NVN_ISOLATE_TASK`), damaged-file substitutes (`romfs_substitute`, `DM_ROMFS_SUBST`) and the SyncWait fence report.
-- Removed, as upstream rewrote the code under them: GreenKid's own chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
-
-## What's new in 0.3.0
-
-Prompted by [issue #1](https://github.com/adi0900/GreenKid-MV/issues/1): the engine moved to upstream main `ab41d6a1` (45 more upstream commits).
-
-- **Memory and swap:** a GPU buffer retired while the game window is in the background is released right away, instead of GPU memory and swap growing (upstream #1919, up to 85 GB of swap reported). Upstream also cut a 6.7 GB Metal memory spike in area loads.
-- **Terrain:** the landed upstream versions of the terrain fixes (#1920), plus no more "plaid" crossing stripes after entering and leaving dungeons, and streamed scenery that no longer draws dark or black for a frame (castle town wall, Hyrule Castle, Lon Lon Ranch).
-- **Death Mountain:** the landed upstream depth rule for the light-blue dashes (#1917).
-- **Smoother camera:** Hyrule Field's 230 ms camera-turn hitch is down to 39 ms, and 41 more pipelines are prepared ahead, so a first visit to Death Mountain Trail no longer stalls.
-- **Faster GPU work:** quicker upscaler network math and texture lookups, a host built at -O2, and fullscreen on a ProMotion screen holding 60 FPS.
-- **Easier setup:** the .NET SDK is no longer needed.
-- **New icon:** the GreenKid-MV green hat, for the builder app and this page.
-- GreenKid-MV's own additions carry over: resolution presets, game-file overlays, MetalFX for the game's upscaler, the GPU-hang watchdog and the CPU savings. GreenKid's older copies of #1920, #1876 and #1917 are replaced by upstream's work.
-
-## What's new in 0.2.0
-
-- **Engine moved to upstream's latest nxnative** (all upstream commits up to `2a6f9b32`), keeping GreenKid-MV's resolution presets and game-file overlays.
-- **Lighting:** fog, mist, shadow and light-shaft fixes from upstream; no more lighting flicker in Kokiri Forest.
-- **Terrain:** streamed terrain tiles no longer vanish or go flat after walking (upstream PRs #1920, #1876).
-- **MetalFX** now actually draws the game's own chained upscaler (upstream PR #1951).
-- **Visual fixes:** light-blue dashes at Death Mountain (#1917), a hard edge in the ground mist (#1824).
-- **Stability:** crash after saving, ocarina crash, a GPU-hang watchdog (#1777), an opt-in M1/M2 hang workaround (`DM_NVN_ISOLATE_TASK=1`, #1842; removed on this branch), and uploads kept on the submit thread (no present-thread abort).
-- **Performance and heat:** two CPU savings per draw, fixed resolution instead of the launcher's dynamic resolution, one frame per display refresh, a 60 FPS cap and simple window scaling. The Performance preset (960×540 upscaled) leaves GPU headroom so a fanless Mac stays at 60 instead of heating up and throttling.
+- Removed, as upstream rewrote the code under them: the earlier chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
 
 ## Features
 
 - A Mac window for choosing your game folder and following the build log.
 - A bundled, pinned engine source snapshot and its existing compiler tools; the launcher contains no playable game.
 - Full local shader and pipeline preparation rather than a reduced first-area shader set.
-- Normal Ocarina rendering at 1280×720, or the lighter upstream preset at 960×540 with upscaling.
-- Private build outputs under `GreenKid-MV-local/` in the chosen game folder.
-- Separate writable engine and Python tools under `~/Library/Application Support/GreenKid-MV/`; building does not modify the signed launcher.
+- Normal Ocarina rendering at 1280×720, the lighter preset at 960×540 with upscaling, or any Render scale step between 50 % and 100 %.
+- Private build outputs under `Bowshot-local/` in the chosen game folder.
+- Separate writable engine and Python tools under `~/Library/Application Support/Bowshot/`; building does not modify the signed launcher.
 - Content checks and Git ignore rules that keep private game outputs out of source packages.
 
 ## Setup and running
 
-Follow these steps in order. Steps 1–3 are one-time setup. You need your own game file before step 4: GreenKid-MV does not include, download or point to one.
+Follow these steps in order. Steps 1–3 are one-time setup. You need your own game file before step 4: Bowshot does not include, download or point to one.
 
 ### 1. Check your Mac
 
@@ -80,10 +57,10 @@ Follow these steps in order. Steps 1–3 are one-time setup. You need your own g
 - **macOS 26.6 or later.** (The builder window opens on macOS 15+, but building and playing need 26.6.)
 - **About 100 GB of free disk space** for your game file, the build, its caches and the finished game app.
 
-### 2. Get GreenKid-MV
+### 2. Get Bowshot
 
-1. From this project's [Releases](https://github.com/adi0900/GreenKid-MV/releases), download the newest `GreenKid-MV-<version>-macOS-arm64.zip` (currently [0.3.0-preview](https://github.com/adi0900/GreenKid-MV/releases/tag/v0.3.0-preview)) (and `SHA256SUMS.txt` if you want to check the download with `shasum -a 256 -c SHA256SUMS.txt`).
-2. Unzip it and move **GreenKid-MV.app** to **Applications**.
+1. From this project's [Releases](https://github.com/LeoGeneret/Bowshot/releases), download the newest `Bowshot-<version>-macOS-arm64.zip` (and `SHA256SUMS.txt` if you want to check the download with `shasum -a 256 -c SHA256SUMS.txt`).
+2. Unzip it and move **Bowshot.app** to **Applications**.
 3. The first time, **right-click the app → Open → Open**. Preview builds are not notarized, so a normal double-click is blocked once. If macOS still refuses, open **System Settings → Privacy & Security** and choose **Open Anyway**.
 
 ### 3. Install the tools (once)
@@ -100,7 +77,7 @@ xcodebuild -downloadComponent MetalToolchain
 To confirm everything is in place, run the builder's check (adjust the path if the app isn't in Applications):
 
 ```sh
-bash /Applications/GreenKid-MV.app/Contents/Resources/engine/scripts/greenkid_build.sh --doctor
+bash /Applications/Bowshot.app/Contents/Resources/engine/scripts/bowshot_build.sh --doctor
 ```
 
 It should end with `Prerequisite executables found.` Otherwise it names what is missing.
@@ -114,21 +91,21 @@ It should end with `Prerequisite executables found.` Otherwise it names what is 
    - the game's NSP file(s): the base game plus **update v131072**.
 
    This preview is built and tested only for update `v131072`.
-3. Keep the folder **outside any Git repository** and outside the GreenKid-MV source. The builder refuses those locations so that game files can't be published by accident. Avoid iCloud-synced folders: the build writes tens of gigabytes.
+3. Keep the folder **outside any Git repository** and outside the Bowshot source. The builder refuses those locations so that game files can't be published by accident. Avoid iCloud-synced folders: the build writes tens of gigabytes.
 
 ### 5. Build your game
 
-1. Open **GreenKid-MV** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
+1. Open **Bowshot** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
 2. Click **Build My Local Game**. The log shows each stage.
    - The **first build takes an hour or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
-   - The first run also installs a private Python into `~/Library/Application Support/GreenKid-MV/`. It downloads Python packages only, never game files or keys.
+   - The first run also installs a private Python into `~/Library/Application Support/Bowshot/`. It downloads Python packages only, never game files or keys.
 3. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.
 
 Building again later reuses everything that is still valid, so it is much faster.
 
 ### 6. Play
 
-1. Click **Show Private Output**. It opens `GreenKid-MV-local` inside your game folder.
+1. Click **Show Private Output**. It opens `Bowshot-local` inside your game folder.
 2. Open **Game.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
 3. A settings window appears before the game starts. Under **Game → Resolution** pick **Normal** (1280×720), **Potato** (960×540) or **Render scale**, a slider with both marked on it; you can change it at every start, no rebuild needed. While playing, **⌥⌘P** shows or hides Apple's Metal HUD, **⌘P** shows or hides the performance panel and, with Resolution set to Render scale, **⌘=** / **⌘-** change it one step at a time (View menu). Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
 4. **Quit** with **⌘Q**, or hold the controller's **Home** button for 2 seconds and press **A**. Progress the game hasn't saved is lost, so save in-game first.
@@ -144,14 +121,14 @@ Tips for smooth play:
 
 | What | Where |
 |---|---|
-| Your game app (private, contains your game) | `<game folder>/GreenKid-MV-local/Game.app` |
-| Build log | `<game folder>/GreenKid-MV-local/build.log` |
-| Settings chosen for your build | `<game folder>/GreenKid-MV-local/runtime.env` |
+| Your game app (private, contains your game) | `<game folder>/Bowshot-local/Game.app` |
+| Build log | `<game folder>/Bowshot-local/build.log` |
+| Settings chosen for your build | `<game folder>/Bowshot-local/runtime.env` |
 | Game settings file (overrides) | `~/Library/Application Support/nxnative/0400486024DEC000/env.txt` |
 | Game log (attach to bug reports) | `~/Library/Logs/nxnative/0400486024DEC000.log` |
-| Builder's engine copy and Python | `~/Library/Application Support/GreenKid-MV/` |
+| Builder's engine copy and Python | `~/Library/Application Support/Bowshot/` |
 
-**Never upload `Game.app`, the `GreenKid-MV-local` folder, your game file or your saves.** They contain game material.
+**Never upload `Game.app`, the `Bowshot-local` folder, your game file or your saves.** They contain game material.
 
 ### Troubleshooting
 
@@ -173,7 +150,7 @@ Open an issue with your Mac model, macOS version, which Resolution you used, and
 | Shareable project material | Keep private and outside the repository |
 |---|---|
 | This source snapshot and its original licence notices | NUP, NSP, NSZ, XCI, XCZ and extracted game modules |
-| GreenKid-MV’s game-free builder ZIP | Any locally generated `Game.app` or game IPA |
+| Bowshot’s game-free builder ZIP | Any locally generated `Game.app` or game IPA |
 | Source ZIP, content-check report and SHA-256 checksums | RomFS images, game models, textures, audio and overlays |
 | Build instructions and upstream acknowledgements | Translated game shader libraries, pipeline caches, saves and console keys |
 
@@ -189,13 +166,13 @@ Ignore rules do not remove files already committed to Git. This snapshot starts 
 
 - This is a builder, not a prebuilt copy of Zelda. Each player builds from their own files.
 - Performance and visual issues can still come from the underlying engine. There is no guarantee of 60 FPS or glitch-free lighting.
-- A fresh machine needs the development tools above; this is not a self-contained replacement for Xcode. Since 0.3.0 the .NET SDK is no longer needed: upstream ships the shader translator and extractor as native programs.
+- A fresh machine needs the development tools above; this is not a self-contained replacement for Xcode. The .NET SDK is not needed: upstream ships the shader translator and extractor as native programs.
 - The first local build is lengthy. Do not run a compiler-heavy build while judging gameplay performance.
 - The 13 GiB Ocarina memory cap is a conservative local setting, not a guarantee against memory pressure in every area. The private `runtime.env` records the selected settings.
 - Upstream gameplay screenshots are omitted from this publication snapshot. Some historical documentation still refers to that omitted gallery.
-- The launcher is currently Apple silicon only. The underlying project’s iPhone and other workflows are not GreenKid-MV release claims.
+- The launcher is currently Apple silicon only. The underlying project’s iPhone and other workflows are not Bowshot release claims.
 
-## Building GreenKid-MV
+## Building Bowshot
 
 This creates the **game-free launcher**, not a game:
 
@@ -210,8 +187,8 @@ The resulting `dist/` contains the launcher ZIP, a source ZIP, `SHA256SUMS.txt` 
 For a local game build without the launcher:
 
 ```sh
-bash scripts/greenkid_build.sh --doctor
-bash scripts/greenkid_build.sh --build /path/to/your/game-folder
+bash scripts/bowshot_build.sh --doctor
+bash scripts/bowshot_build.sh --build /path/to/your/game-folder
 ```
 
 ## Credits
@@ -221,6 +198,7 @@ The original developers deserve the credit for the runtime, graphics and game su
 | People / project | Contribution |
 |---|---|
 | [seedds / nxnative](https://github.com/seedds/nxnative) | Base project, host/runtime, Metal integration, rewriter and continuing fixes. Original MIT copyright retained. |
+| [Motion_Viz / GreenKid-MV](https://github.com/adi0900/GreenKid-MV) | The project Bowshot is forked from: the local-builder launcher, content checks and packaging, the Normal / Potato resolution presets and game-file overlays, the GPU-hang watchdog and the dispatch and texel-fetch clamps. |
 | [cheemu21 / kid-with-sword-remake](https://github.com/cheemu21/kid-with-sword-remake) | The fork GreenKid-MV 0.1.0 was built on: Ocarina-specific integration, presets, upscaling work and documented Mac/iPhone experiments. Its Ocarina features are carried forward onto upstream main in 0.2.0. |
 | Xipzer | Performance work credited in the imported history and fork documentation. |
 | Pedro Nascimento | Imported graphics-scale work and other contributions, as recorded in the upstream history. |
@@ -228,10 +206,10 @@ The original developers deserve the credit for the runtime, graphics and game su
 | [jhaizhou-ops / d2r-mobile](https://github.com/jhaizhou-ops/d2r-mobile) | The native-execution foundation acknowledged by nxnative. |
 | Ryujinx, LibHac, SPIRV-Cross, Atmosphère, MacNativeGames and the other dependency authors | Translation, extraction, system references and supporting libraries. See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md). |
 
-GreenKid-MV adds the distribution boundary, local-builder launcher and packaging checks. It does not claim authorship of the imported engine fixes. The straightforward README organization was inspired by [NX2navi](https://github.com/tangerineturtle1/NX2navi); none of that project’s code, artwork or restricted additions were imported.
+Bowshot, like GreenKid-MV before it, adds the distribution boundary, local-builder launcher and packaging checks. It does not claim authorship of the imported engine fixes. The straightforward README organization was inspired by [NX2navi](https://github.com/tangerineturtle1/NX2navi); none of that project’s code, artwork or restricted additions were imported.
 
 ## Licence and project identity
 
 The imported engine retains its [MIT licence](LICENSE). Third-party components retain their own terms and notices. The original upstream overview is retained in [UPSTREAM_README.md](UPSTREAM_README.md).
 
-No software licence grants rights to Nintendo’s game content. Removing game data from a release is a technical distribution boundary, not legal clearance. GreenKid-MV is an independent project and is not affiliated with or endorsed by Nintendo. Game and platform names belong to their respective owners.
+No software licence grants rights to Nintendo’s game content. Removing game data from a release is a technical distribution boundary, not legal clearance. Bowshot is an independent project and is not affiliated with or endorsed by Nintendo. Game and platform names belong to their respective owners.

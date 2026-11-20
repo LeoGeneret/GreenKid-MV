@@ -66,7 +66,7 @@ def main():
         names = [p.decode() for p in result.stdout.split(b'\0') if p]
         # Read the index, not a potentially different working-tree version.
         # checkout-index writes only a temporary audit copy, never the real tree.
-        with tempfile.TemporaryDirectory(prefix='greenkid-index-') as d:
+        with tempfile.TemporaryDirectory(prefix='bowshot-index-') as d:
             if names:
                 subprocess.run(['git', '-C', str(root), 'checkout-index', '--stdin', '-z', '--prefix=' + d + '/'], input=result.stdout, check=True, capture_output=True)
                 staged_errors, staged_report = check(Path(d), [Path(d) / n for n in names], fixtures)

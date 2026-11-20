@@ -25,11 +25,11 @@ def main():
     version = (ROOT / 'VERSION').read_text().strip()
     dist = ROOT / 'dist'
     dist.mkdir(exist_ok=True)
-    app = dist / 'GreenKid-MV.app'
+    app = dist / 'Bowshot.app'
     if app.exists():
-        raise SystemExit('dist/GreenKid-MV.app already exists. Keep the previous release and use a fresh output folder before packaging again.')
+        raise SystemExit('dist/Bowshot.app already exists. Keep the previous release and use a fresh output folder before packaging again.')
     contents = app / 'Contents'
-    executable = contents / 'MacOS/GreenKid-MV'
+    executable = contents / 'MacOS/Bowshot'
     resources = contents / 'Resources'
     engine = resources / 'engine'
     executable.parent.mkdir(parents=True)
@@ -44,15 +44,15 @@ def main():
         shutil.copy2(ROOT / name, docs / name)
     run('xcrun', 'swiftc', '-swift-version', '5', '-O', '-target', 'arm64-apple-macos15.0', '-framework', 'AppKit', ROOT / 'launcher/mac/main.swift', '-o', executable)
     info = {
-        'CFBundleName': 'GreenKid-MV', 'CFBundleDisplayName': 'GreenKid-MV',
-        'CFBundleIdentifier': 'local.greenkidmv.builder', 'CFBundleExecutable': 'GreenKid-MV',
+        'CFBundleName': 'Bowshot', 'CFBundleDisplayName': 'Bowshot',
+        'CFBundleIdentifier': 'local.bowshot.builder', 'CFBundleExecutable': 'Bowshot',
         'CFBundlePackageType': 'APPL', 'CFBundleShortVersionString': version.split('-')[0],
         'CFBundleVersion': '1', 'LSMinimumSystemVersion': '15.0',
         'NSHighResolutionCapable': True,
         'NSDownloadsFolderUsageDescription': 'Build a private local game from the dump folder you choose.',
         'NSDocumentsFolderUsageDescription': 'Build a private local game from the dump folder you choose.'
     }
-    icon_src = ROOT / 'launcher/mac/AppIcon.png'   # the GreenKid-MV hat: an original icon, no game artwork
+    icon_src = ROOT / 'launcher/mac/AppIcon.png'   # the Bowshot bow and arrow: an original icon, no game artwork
     if icon_src.exists():
         iconset = dist / 'AppIcon.iconset'
         shutil.rmtree(iconset, ignore_errors=True); iconset.mkdir()
@@ -73,12 +73,12 @@ def main():
     errors, bundled_report = check(engine, list(publication_files(engine)), fixtures)
     if errors:
         raise SystemExit('Bundled engine failed content check: ' + json.dumps(errors))
-    archive = dist / f'GreenKid-MV-{version}-macOS-arm64.zip'
+    archive = dist / f'Bowshot-{version}-macOS-arm64.zip'
     run('ditto', '-c', '-k', '--norsrc', '--noextattr', '--noacl', '--keepParent', app, archive)  # no __MACOSX/ metadata entries
-    source_zip = dist / f'GreenKid-MV-{version}-source.zip'
+    source_zip = dist / f'Bowshot-{version}-source.zip'
     with zipfile.ZipFile(source_zip, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=6) as z:
         for p in paths:
-            z.write(p, 'GreenKid-MV/' + p.relative_to(ROOT).as_posix())
+            z.write(p, 'Bowshot/' + p.relative_to(ROOT).as_posix())
     hashes = []
     for p in (archive, source_zip):
         digest = hashlib.file_digest(p.open('rb'), 'sha256').hexdigest()

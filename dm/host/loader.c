@@ -367,7 +367,7 @@ static void install_fps_state(module_t *m) {
     if (m->render_scale_max > 1) g_render_scale_max = (float)m->render_scale_max;
     if (m->render_scale_max) g_render_scale_stub = 1;
 }
-// GreenKid-MV: the render scale while the game runs (front_mac.m's View menu, ⌘= / ⌘-; its performance panel). A render-scale stub reads state +0x10 at every frame and asks the
+// Bowshot: the render scale while the game runs (front_mac.m's View menu, ⌘= / ⌘-; its performance panel). A render-scale stub reads state +0x10 at every frame and asks the
 // game for new 3D sizes when it differs from the stored scale (Ocarina of Time's patches.py render_scale), so a new value there takes effect at the next frame, as the game's own
 // dynamic resolution does. Steps follow the profile's slider (game.tsv render_scale, the header's DM_GAME_RENDER_SCALE_*); a game with the Resolution presets steps only while its
 // Resolution is Render scale (DM_RES_PRESET=2, see dm_fps_state_apply). Another game's stub may read the value at other moments only: the change then waits for one
@@ -417,7 +417,7 @@ void dm_fps_state_apply(void) {
     const char *rs = getenv("DM_RENDER_SCALE"); float sc = 1.0f, hi = g_render_scale_max;
     if (rs) { char *end; sc = strtof(rs, &end); if (end == rs || *end || !(sc >= 0.5f && sc <= hi)) { LOG("[RED] DM_RENDER_SCALE=%s: must be 0.5 to %.1f; keeping the game's size", rs, hi); sc = 1.0f; } else LOG("%s: 3D views rendered at %.2f of the game's size (DM_RENDER_SCALE)", g_fps_mod, sc); }
 #if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
-    // GreenKid-MV: a game with the Resolution presets (Ocarina of Time) takes the render scale only when its Resolution is Render scale (DM_RES_PRESET=2); otherwise 0, which its
+    // Bowshot: a game with the Resolution presets (Ocarina of Time) takes the render scale only when its Resolution is Render scale (DM_RES_PRESET=2); otherwise 0, which its
     // stub reads as unset (patches.py render_scale), so the Normal / Potato overlay's levels stay the game's own. 1.0 would fix the full size and undo them
     { const char *rp = getenv("DM_RES_PRESET"); if (!rp || atoi(rp) != 2) { if (rs && sc != 1.0f) LOG("DM_RENDER_SCALE=%s left out: the Resolution preset is not Render scale (DM_RES_PRESET=2)", rs); sc = 0.0f; } }
 #endif

@@ -4,7 +4,7 @@
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
 SOURCE_ROOT="$(cd "$(dirname "$0")/.." && pwd)"
-SUPPORT_DIR="${GREENKID_SUPPORT_DIR:-$HOME/Library/Application Support/GreenKid-MV}"
+SUPPORT_DIR="${BOWSHOT_SUPPORT_DIR:-$HOME/Library/Application Support/Bowshot}"
 
 doctor() {
   [[ "$(uname -m)" == arm64 ]] || { echo 'Apple silicon is required.'; return 1; }
@@ -18,7 +18,7 @@ doctor() {
 case "${1:-}" in
   --doctor) doctor; echo 'Prerequisite executables found. Engine build performs the exact compiler-version check.'; exit 0 ;;
   --build) shift ;;
-  *) echo 'Usage: greenkid_build.sh --doctor | --build <game-folder>'; exit 2 ;;
+  *) echo 'Usage: bowshot_build.sh --doctor | --build <game-folder>'; exit 2 ;;
 esac
 GAME_DIR="${1:?Choose a folder containing your own game dump}"
 # The resolution (Normal, Potato or the Render scale slider) is chosen in the game app's launcher window at each start: both overlays are packed. An older
@@ -47,7 +47,7 @@ if [[ ! -f "$SUPPORT_DIR/requirements.key" ]] || [[ "$(cat "$SUPPORT_DIR/require
   uv pip install --python "$PYTHON" -r "$ENGINE_DIR/requirements-builder.txt"
   printf '%s\n' "$REQUIREMENTS_KEY" > "$SUPPORT_DIR/requirements.key"
 fi
-PRIVATE_DIR="$GAME_DIR/GreenKid-MV-local"
+PRIVATE_DIR="$GAME_DIR/Bowshot-local"
 WORK_DIR="$PRIVATE_DIR/build"
 OUTPUT_APP="$PRIVATE_DIR/Game.app"
 mkdir -p "$PRIVATE_DIR"

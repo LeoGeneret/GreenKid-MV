@@ -209,7 +209,7 @@ def header_one(g):
     ups = upscaler_keys(g)   # the game's own upscaler shaders, which DM_UPSCALER=metalfx (the launcher's Game's upscaler) replaces with MetalFX's spatial scaler (nvn_mtl.m up_mfx_encode)
     dbr = g.get('draw_barriers', 'full')   # how draw passes are ordered (nvn_mtl.m barrier_game): full = each waits for all earlier GPU work, game = by the game's own barriers, so vertex work overlaps the previous pass's fragments
     if dbr not in ('full', 'game'): sys.exit(f'{g.id}: draw_barriers must be full or game: {dbr}')
-    # GreenKid-MV: the Render scale slider's range and marks (settings.py takes them for the launcher) and the base size, for the host's live steps and its performance panel
+    # Bowshot: the Render scale slider's range and marks (settings.py takes them for the launcher) and the base size, for the host's live steps and its performance panel
     rsr = g.get('render_scale', '0.5:1.0:0.05')
     try: rs_lo, rs_hi, rs_st = (float(x) for x in rsr.split(':'))
     except ValueError: sys.exit(f'{g.id}: render_scale is <min>:<max>:<step>: {rsr}')
@@ -218,7 +218,7 @@ def header_one(g):
     rsm = g.get('render_scale_marks', '')
     rbm = re.fullmatch(r'\s*(\d+)x(\d+)\s+(\d+)x(\d+)\s*', g.get('render_base', '') or '0x0 0x0')
     if not rbm: sys.exit(f'{g.id}: render_base is "<w>x<h> <w>x<h>" (docked, then handheld)')
-    rsp = g.get('res_presets', 'off')   # GreenKid-MV: the launcher's Resolution row (DM_RES_PRESET, hle_fs.c rom_overlay_set): on when the app's romfs_overlay has potato-<mode>/ folders beside <mode>/ (Ocarina of Time)
+    rsp = g.get('res_presets', 'off')   # Bowshot: the launcher's Resolution row (DM_RES_PRESET, hle_fs.c rom_overlay_set): on when the app's romfs_overlay has potato-<mode>/ folders beside <mode>/ (Ocarina of Time)
     if rsp not in ('off', 'on'): sys.exit(f'{g.id}: res_presets must be off or on: {rsp}')
     om = g.get('op_mode', 'console')   # the operation mode reported at start (hle_oe.c dm_opmode; DM_OPMODE overrides): console = docked, handheld = touch screen in use (Super Mario Galaxy's pointer)
     if om not in ('console', 'handheld'): sys.exit(f'{g.id}: op_mode must be console or handheld: {om}')

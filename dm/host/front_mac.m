@@ -733,7 +733,7 @@ static void *guest_tramp(void *p) {
 }
 
 // Metal reads MTL_HUD_ENABLED when the process makes its first device, which can be before the window: set from DM_METAL_HUD before main (set in front_run, the HUD did not show)
-// GreenKid-MV: the HUD is made available to every run so View > Show Metal HUD (⌥⌘P) can show it in play; the layer keeps it hidden unless DM_METAL_HUD is on
+// Bowshot: the HUD is made available to every run so View > Show Metal HUD (⌥⌘P) can show it in play; the layer keeps it hidden unless DM_METAL_HUD is on
 // (developerHUDProperties mode disabled, see the window below). An explicit MTL_HUD_ENABLED in the environment wins
 __attribute__((constructor)) static void hud_env(void) { front_hud_env(); setenv("MTL_HUD_ENABLED", "1", 0); setenv("MTL_HUD_HIDE_METALFX_METRICS", "1", 0); }
 
@@ -817,7 +817,7 @@ static void cheats_open_folder(void) {
     if (dir && *dir) { mkdir(dir, 0755); [[NSWorkspace sharedWorkspace] openURL:[NSURL fileURLWithPath:@(dir)]]; }
 }
 
-// ---------- GreenKid-MV: the View menu: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-) ----------
+// ---------- Bowshot: the View menu: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-) ----------
 // The panel, at the window's top left over the game: the frames shown a second, the mean frame time, the GPU time of the last frames (mtl_gpu_ms), the 3D size and its Render scale
 // step (named from the profile's marks: Potato, Normal, Native), the Resolution preset and the game's upscaler. A step of the render scale (loader.c dm_render_scale_step) shows it for
 // 3 s when it is hidden, and is kept as the launcher's choice (launcher.DM_RENDER_SCALE, as the settings window saves it) for the next start. Shown or not is kept too
@@ -932,7 +932,7 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
     self.box.hidden = YES; [cv addSubview:self.box];
     self.n0 = mtl_present_count(); self.t0 = CACurrentMediaTime(); self.gpu = -1;
     [NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *t) { (void)t; [self tick]; }];
-    if ([NSUserDefaults.standardUserDefaults boolForKey:@"greenkid.perfPanel"]) [self toggle:nil];
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"bowshot.perfPanel"]) [self toggle:nil];
 }
 - (void)measure {   // once a second: the frames shown over that second, and the mean GPU time of the last frames the GPU finished
     double now = CACurrentMediaTime(); uint64_t n = mtl_present_count();
@@ -958,7 +958,7 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
 - (void)toggle:(id)sender {
     (void)sender; self.shown = !self.shown; self.flashUntil = 0;
     self.toggleItem.title = self.shown ? @"Hide Performance Panel" : @"Show Performance Panel";
-    [NSUserDefaults.standardUserDefaults setBool:self.shown forKey:@"greenkid.perfPanel"];
+    [NSUserDefaults.standardUserDefaults setBool:self.shown forKey:@"bowshot.perfPanel"];
     [self tick];
     LOG("front end: performance panel %s", self.shown ? "shown" : "hidden");
 }
@@ -1787,7 +1787,7 @@ void front_run(void (*guest)(void)) {
         // Apple's HUD over the game (frame rate, frame and GPU time, memory): front_hud_env turns it on before the first device. The layer's developerHUDProperties
         // stay unset: mode=default forces this layer's HUD on, so the Metal HUD menu's Hide HUD left it on screen
         if (getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"))) LOG("front end: Metal performance HUD on (DM_METAL_HUD)");
-        else g_layer.developerHUDProperties = @{@"mode": @"disabled"};   // GreenKid-MV: available (hud_env) but hidden until View > Show Metal HUD
+        else g_layer.developerHUDProperties = @{@"mode": @"disabled"};   // Bowshot: available (hud_env) but hidden until View > Show Metal HUD
         v.layer = g_layer; [(DmGameView *)v fitDrawable];
         [win center];
         [win makeKeyAndOrderFront:nil];
@@ -1817,7 +1817,7 @@ void front_run(void (*guest)(void)) {
         [[bar addItemWithTitle:@"Cheats" action:nil keyEquivalent:@""] setSubmenu:cm];
         if (getenv("DM_CHEATS_WINDOW") && atoi(getenv("DM_CHEATS_WINDOW")))   // the Cheats panel open from the start (beside the game, not key)
             dispatch_async(dispatch_get_main_queue(), ^{ [g_cheats_menu showPanel:nil]; });
-        // GreenKid-MV: View: the performance panel (⌘P), Apple's Metal HUD (⌥⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
+        // Bowshot: View: the performance panel (⌘P), Apple's Metal HUD (⌥⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
         g_perf = [DmPerfPanel new];
         NSMenu *vm = [[NSMenu alloc] initWithTitle:@"View"];
         g_perf.toggleItem = [vm addItemWithTitle:@"Show Performance Panel" action:@selector(toggle:) keyEquivalent:@"p"]; g_perf.toggleItem.target = g_perf;

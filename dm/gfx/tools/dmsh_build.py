@@ -747,7 +747,7 @@ def geometry_finish(key, w, j, c1):
         try: selected = dmsh_rewrite.uniform_tests(dmsh_rewrite.select_guards(dmsh_rewrite.bit0_mask(dmsh_rewrite.precise(dmsh_atomic.check_msl(r.stdout)))))   # precise, a tested bit 0's mask (bit0_mask), bounded uniform reads as selects (dmsh_rewrite.select_guards), tested words as volatile loads (uniform_tests), as finish makes them
         except ValueError as e: return 'geometry MSL failed', str(e)[:160], None
         res = json.load(open(os.path.join(w, k + '.res.json')))
-        plain = dmsh_geometry.topology_pointer(dmsh_reflect.pool_arrays(dmsh_rewrite.fetch_clamp(selected, dmsh_reflect.fetch1d_names(selected, res))))   # GreenKid-MV: texel fetches past a sampled 2D texture's edge (see fetch_clamp)
+        plain = dmsh_geometry.topology_pointer(dmsh_reflect.pool_arrays(dmsh_rewrite.fetch_clamp(selected, dmsh_reflect.fetch1d_names(selected, res))))   # Bowshot: texel fetches past a sampled 2D texture's edge (see fetch_clamp)
         src = dmsh_geometry.capture_input(plain)
         refl = {'key': key + '_bg' + str(t), 'route': 'B', 'chain': CHAIN, 'dm_ctl': key,
                 'source': f'{loc[key][0]}#{loc[key][1]}', 'pc_paired': pc_of[key], 'stage': 'gs',

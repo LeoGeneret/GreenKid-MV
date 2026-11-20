@@ -16,9 +16,13 @@
 
 The full upstream notes are in [dm/third_party/README.md](dm/third_party/README.md). Ryujinx, LibHac, SPIRV-Cross, glslang, Atmosphère, MacNativeGames, dav1d, libvpx, stb_vorbis, Vulkan-Headers, FLIP and their contributors retain their respective credits and licences. Existing third-party licence files are preserved in the source and in the builder’s bundled engine.
 
-## GreenKid-MV additions
+## GreenKid-MV
 
-The local builder UI, public-content checks and release packaging are GreenKid-MV additions. They do not make the upstream shader or runtime fixes original GreenKid-MV work.
+Bowshot is a fork of [GreenKid-MV](https://github.com/adi0900/GreenKid-MV) by **Motion_Viz** (0.3.0, engine `ab41d6a1`). The local builder UI, public-content checks, release packaging, the Normal / Potato resolution presets and game-file overlays, the GPU-hang watchdog and the dispatch and texel-fetch clamps are GreenKid-MV's work; its copyright line is kept in `LICENSE`. They do not make the upstream shader or runtime fixes original GreenKid-MV work.
+
+## Bowshot additions
+
+The Render scale choice and its live steps, the in-game performance panel and Metal HUD toggle, the bow-and-arrow icon, and the move to nxnative main `8c94bd1e` with kid-with-sword-remake's render-target pacing and Texture Memory Saver. They do not make the upstream or GreenKid-MV work original Bowshot work.
 
 ## README reference
 
