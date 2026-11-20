@@ -253,7 +253,7 @@ Turn off **Show this window at launch** to start the game at once with your choi
 
 ### The View menu
 
-GreenKid-MV, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
+GreenKid-MV, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Show Metal HUD** (⌥⌘P) shows or hides Apple's Metal Performance HUD over the game, with its frame-time graph, and keeps the choice as [Performance HUD](#performance-hud)'s for the next start. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
 ## Cloud saves
 
 The Mac app and the iPhone app of one game can share a save through iCloud Drive. Choose the same iCloud Drive folder on both: **Cloud saves** › **Choose a folder…** in the Mac settings window, and **Cloud saves** in the iPhone launcher (any folder, for instance one named **nxnative Saves**). Each game keeps one file there, `<title ID>/save.dmsync`, which holds the whole save.

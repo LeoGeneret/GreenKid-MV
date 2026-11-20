@@ -733,7 +733,9 @@ static void *guest_tramp(void *p) {
 }
 
 // Metal reads MTL_HUD_ENABLED when the process makes its first device, which can be before the window: set from DM_METAL_HUD before main (set in front_run, the HUD did not show)
-__attribute__((constructor)) static void hud_env(void) { front_hud_env(); }
+// GreenKid-MV: the HUD is made available to every run so View > Show Metal HUD (⌥⌘P) can show it in play; the layer keeps it hidden unless DM_METAL_HUD is on
+// (developerHUDProperties mode disabled, see the window below). An explicit MTL_HUD_ENABLED in the environment wins
+__attribute__((constructor)) static void hud_env(void) { front_hud_env(); setenv("MTL_HUD_ENABLED", "1", 0); setenv("MTL_HUD_HIDE_METALFX_METRICS", "1", 0); }
 
 // ---------- Cheats: the menu and the panel (hle_cheats.c holds every state; these only show it and call it) ----------
 
@@ -911,6 +913,8 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
 @property (nonatomic, strong) NSView *box;
 @property (nonatomic, strong) NSTextField *text;
 @property (nonatomic, strong) NSMenuItem *toggleItem;
+@property (nonatomic, strong) NSMenuItem *hudItem;
+@property (nonatomic) BOOL hud;   // Apple's Metal HUD shown on the game layer
 @property (nonatomic) BOOL shown;
 @property (nonatomic) double flashUntil, t0, fps, gpu;   // gpu < 0: no GPU time read yet
 @property (nonatomic) uint64_t n0;
@@ -970,6 +974,14 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
 }
 - (void)scaleUp:(id)sender { (void)sender; [self step:1]; }
 - (void)scaleDown:(id)sender { (void)sender; [self step:-1]; }
+- (void)toggleHud:(id)sender {   // Apple's Metal HUD on the game layer, shown or hidden in play; the choice is the settings window's Performance HUD at the next start
+    (void)sender; self.hud = !self.hud;
+    g_layer.developerHUDProperties = @{@"mode": self.hud ? @"default" : @"disabled"};
+    self.hudItem.title = self.hud ? @"Hide Metal HUD" : @"Show Metal HUD";
+    NSUserDefaults *d = NSUserDefaults.standardUserDefaults;   // the default (off) is not stored (docs/frontends.md, Saved choices)
+    if (self.hud) [d setObject:@"1" forKey:@"launcher.DM_METAL_HUD"]; else [d removeObjectForKey:@"launcher.DM_METAL_HUD"];
+    LOG("front end: Metal performance HUD %s (View menu)", self.hud ? "shown" : "hidden");
+}
 - (BOOL)validateMenuItem:(NSMenuItem *)item {
     if (item.action == @selector(scaleUp:) || item.action == @selector(scaleDown:)) return dm_render_scale_state(NULL) == 1;
     return YES;
@@ -1775,6 +1787,7 @@ void front_run(void (*guest)(void)) {
         // Apple's HUD over the game (frame rate, frame and GPU time, memory): front_hud_env turns it on before the first device. The layer's developerHUDProperties
         // stay unset: mode=default forces this layer's HUD on, so the Metal HUD menu's Hide HUD left it on screen
         if (getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"))) LOG("front end: Metal performance HUD on (DM_METAL_HUD)");
+        else g_layer.developerHUDProperties = @{@"mode": @"disabled"};   // GreenKid-MV: available (hud_env) but hidden until View > Show Metal HUD
         v.layer = g_layer; [(DmGameView *)v fitDrawable];
         [win center];
         [win makeKeyAndOrderFront:nil];
@@ -1804,10 +1817,13 @@ void front_run(void (*guest)(void)) {
         [[bar addItemWithTitle:@"Cheats" action:nil keyEquivalent:@""] setSubmenu:cm];
         if (getenv("DM_CHEATS_WINDOW") && atoi(getenv("DM_CHEATS_WINDOW")))   // the Cheats panel open from the start (beside the game, not key)
             dispatch_async(dispatch_get_main_queue(), ^{ [g_cheats_menu showPanel:nil]; });
-        // GreenKid-MV: View: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
+        // GreenKid-MV: View: the performance panel (⌘P), Apple's Metal HUD (⌥⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
         g_perf = [DmPerfPanel new];
         NSMenu *vm = [[NSMenu alloc] initWithTitle:@"View"];
         g_perf.toggleItem = [vm addItemWithTitle:@"Show Performance Panel" action:@selector(toggle:) keyEquivalent:@"p"]; g_perf.toggleItem.target = g_perf;
+        g_perf.hud = getenv("DM_METAL_HUD") && atoi(getenv("DM_METAL_HUD"));
+        g_perf.hudItem = [vm addItemWithTitle:(g_perf.hud ? @"Hide Metal HUD" : @"Show Metal HUD") action:@selector(toggleHud:) keyEquivalent:@"p"];
+        g_perf.hudItem.keyEquivalentModifierMask = NSEventModifierFlagCommand | NSEventModifierFlagOption; g_perf.hudItem.target = g_perf;   // ⌥⌘P
         [vm addItem:NSMenuItem.separatorItem];
         [vm addItemWithTitle:@"Increase Render Scale" action:@selector(scaleUp:) keyEquivalent:@"="].target = g_perf;
         [vm addItemWithTitle:@"Decrease Render Scale" action:@selector(scaleDown:) keyEquivalent:@"-"].target = g_perf;
