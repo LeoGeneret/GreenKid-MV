@@ -106,7 +106,7 @@ Building again later reuses everything that is still valid, so it is much faster
 ### 6. Play
 
 1. Click **Show Private Output**. It opens `Bowshot-local` inside your game folder.
-2. Open **Game.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
+2. Open **Ocarina of Time.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
 3. A settings window appears before the game starts. Under **Game → Resolution** pick **Normal** (1280×720), **Potato** (960×540) or **Render scale**, a slider with both marked on it; you can change it at every start, no rebuild needed. While playing, **⌥⌘P** shows or hides Apple's Metal HUD, **⌘P** shows or hides the performance panel and, with Resolution set to Render scale, **⌘=** / **⌘-** change it one step at a time (View menu). Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
 4. **Quit** with **⌘Q**, or hold the controller's **Home** button for 2 seconds and press **A**. Progress the game hasn't saved is lost, so save in-game first.
 
@@ -121,14 +121,14 @@ Tips for smooth play:
 
 | What | Where |
 |---|---|
-| Your game app (private, contains your game) | `<game folder>/Bowshot-local/Game.app` |
+| Your game app (private, contains your game) | `<game folder>/Bowshot-local/Ocarina of Time.app` |
 | Build log | `<game folder>/Bowshot-local/build.log` |
 | Settings chosen for your build | `<game folder>/Bowshot-local/runtime.env` |
 | Game settings file (overrides) | `~/Library/Application Support/nxnative/0400486024DEC000/env.txt` |
 | Game log (attach to bug reports) | `~/Library/Logs/nxnative/0400486024DEC000.log` |
 | Builder's engine copy and Python | `~/Library/Application Support/Bowshot/` |
 
-**Never upload `Game.app`, the `Bowshot-local` folder, your game file or your saves.** They contain game material.
+**Never upload `Ocarina of Time.app`, the `Bowshot-local` folder, your game file or your saves.** They contain game material.
 
 ### Troubleshooting
 
@@ -150,7 +150,7 @@ Open an issue with your Mac model, macOS version, which Resolution you used, and
 | Shareable project material | Keep private and outside the repository |
 |---|---|
 | This source snapshot and its original licence notices | NUP, NSP, NSZ, XCI, XCZ and extracted game modules |
-| Bowshot’s game-free builder ZIP | Any locally generated `Game.app` or game IPA |
+| Bowshot’s game-free builder ZIP | Any locally generated game app (`Ocarina of Time.app`) or game IPA |
 | Source ZIP, content-check report and SHA-256 checksums | RomFS images, game models, textures, audio and overlays |
 | Build instructions and upstream acknowledgements | Translated game shader libraries, pipeline caches, saves and console keys |
 

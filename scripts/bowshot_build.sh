@@ -49,7 +49,7 @@ if [[ ! -f "$SUPPORT_DIR/requirements.key" ]] || [[ "$(cat "$SUPPORT_DIR/require
 fi
 PRIVATE_DIR="$GAME_DIR/Bowshot-local"
 WORK_DIR="$PRIVATE_DIR/build"
-OUTPUT_APP="$PRIVATE_DIR/Game.app"
+OUTPUT_APP="$PRIVATE_DIR/Ocarina of Time.app"   # the name Finder and Launchpad show; the menu bar shows the profile's name
 mkdir -p "$PRIVATE_DIR"
 BUILD_LOG="$PRIVATE_DIR/build.log"
 printf 'Private outputs: %s\nEngine revision: %s\n' "$PRIVATE_DIR" "$REVISION"
