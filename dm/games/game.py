@@ -220,8 +220,6 @@ def header_one(g):
     if not rbm: sys.exit(f'{g.id}: render_base is "<w>x<h> <w>x<h>" (docked, then handheld)')
     rsp = g.get('res_presets', 'off')   # GreenKid-MV: the launcher's Resolution row (DM_RES_PRESET, hle_fs.c rom_overlay_set): on when the app's romfs_overlay has potato-<mode>/ folders beside <mode>/ (Ocarina of Time)
     if rsp not in ('off', 'on'): sys.exit(f'{g.id}: res_presets must be off or on: {rsp}')
-    rsub = ' '.join(g.get('romfs_substitute', '').split())   # damaged RomFS files (a .zs that is not a zstd stream) served as another image file (hle_fs.c img_serve; DM_ROMFS_SUBST overrides): <path>=<substitute> pairs
-    if any(w.count('=') != 1 or w.startswith(('=', '/')) or w.endswith('=') or '=/' in w for w in rsub.split()): sys.exit(f'{g.id}: romfs_substitute takes <path>=<substitute path> pairs, RomFS paths without a leading /: {rsub}')
     om = g.get('op_mode', 'console')   # the operation mode reported at start (hle_oe.c dm_opmode; DM_OPMODE overrides): console = docked, handheld = touch screen in use (Super Mario Galaxy's pointer)
     if om not in ('console', 'handheld'): sys.exit(f'{g.id}: op_mode must be console or handheld: {om}')
     if pl == 'touch' and om != 'handheld': sys.exit(f'{g.id}: pad_layout touch needs op_mode handheld (the touch screen reaches the game only in handheld mode)')
@@ -274,7 +272,6 @@ def header_one(g):
          f'#define DM_GAME_RENDER_SCALE_DEFAULT {rsd!r}f',
          f'#define DM_GAME_RENDER_SCALE_MARKS {q(rsm)}',
          f'#define DM_GAME_RENDER_BASE_DOCKED_W {rbm[1]}', f'#define DM_GAME_RENDER_BASE_DOCKED_H {rbm[2]}', f'#define DM_GAME_RENDER_BASE_HANDHELD_W {rbm[3]}', f'#define DM_GAME_RENDER_BASE_HANDHELD_H {rbm[4]}',
-         f'#define DM_GAME_ROMFS_SUBST {q(rsub)}',
          f'#define DM_GAME_PERF_BOOST {int(pm == "boost")}',
          f'#define DM_GAME_TEX_FLUSH_UPLOAD {int(tfu == "on")}',
          f'#define DM_GAME_SHADER_KEY_SKIP_OFF {sko:#x}', f'#define DM_GAME_SHADER_KEY_SKIP_LEN {skl:#x}',

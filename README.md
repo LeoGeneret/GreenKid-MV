@@ -33,7 +33,8 @@ Not released yet: build it from source ([Building GreenKid-MV](#building-greenki
 - **In game:** **⌥⌘P** shows or hides Apple's Metal HUD (frame-time graph included) without restarting; **⌘P** shows a performance panel (frames a second, frame and GPU time, the 3D size and its step: Potato, Normal, Native) and **⌘= / ⌘-** move the Render scale one step while you play (with Resolution set to Render scale); the step you leave is the next start's. Both are in the game window's **View** menu.
 - **Texture Memory Saver** (launcher, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory; slightly softer up close. On kid-with-sword-remake's Mac walk the longest frames went from 2.7 s / 0.5 s to 0.4 s / 0.3 s (kid-with-sword-remake L7).
 - **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
-- Kept: resolution presets, game-file overlays, the GPU-hang watchdog, the dispatch and texel-fetch clamps, damaged-file substitutes.
+- Kept: resolution presets, game-file overlays, the GPU-hang watchdog, the dispatch and texel-fetch clamps.
+- Removed as unused by default: the M1/M2 task isolation (`DM_NVN_ISOLATE_TASK`), damaged-file substitutes (`romfs_substitute`, `DM_ROMFS_SUBST`) and the SyncWait fence report.
 - Removed, as upstream rewrote the code under them: GreenKid's own chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
 
 ## What's new in 0.3.0
@@ -56,7 +57,7 @@ Prompted by [issue #1](https://github.com/adi0900/GreenKid-MV/issues/1): the eng
 - **Terrain:** streamed terrain tiles no longer vanish or go flat after walking (upstream PRs #1920, #1876).
 - **MetalFX** now actually draws the game's own chained upscaler (upstream PR #1951).
 - **Visual fixes:** light-blue dashes at Death Mountain (#1917), a hard edge in the ground mist (#1824).
-- **Stability:** crash after saving, ocarina crash, a GPU-hang watchdog (#1777), an opt-in M1/M2 hang workaround (`DM_NVN_ISOLATE_TASK=1`, #1842), and uploads kept on the submit thread (no present-thread abort).
+- **Stability:** crash after saving, ocarina crash, a GPU-hang watchdog (#1777), an opt-in M1/M2 hang workaround (`DM_NVN_ISOLATE_TASK=1`, #1842; removed on this branch), and uploads kept on the submit thread (no present-thread abort).
 - **Performance and heat:** two CPU savings per draw, fixed resolution instead of the launcher's dynamic resolution, one frame per display refresh, a 60 FPS cap and simple window scaling. The Performance preset (960×540 upscaled) leaves GPU headroom so a fanless Mac stays at 60 instead of heating up and throttling.
 
 ## Features
