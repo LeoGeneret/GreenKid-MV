@@ -117,15 +117,10 @@ It should end with `Prerequisite executables found.` Otherwise it names what is 
 ### 5. Build your game
 
 1. Open **GreenKid-MV** and click **Choose Game Folder…**. Select the folder from step 4 (the folder itself, not the file inside it).
-2. Pick the picture quality:
-   - **Ticked (default): "Prefer the lighter Zelda performance preset"** draws at 960×540 and upscales. It is easier on the Mac and the best choice for base models.
-   - **Unticked: Normal** draws at 1280×720 and looks sharper, but needs more GPU.
-
-   You can rebuild later with the other choice.
-3. Click **Build My Local Game**. The log shows each stage.
+2. Click **Build My Local Game**. The log shows each stage.
    - The **first build takes an hour or more**: it translates and prepares every shader of the game on your Mac. Keep the Mac plugged in and awake. The window won't let you quit halfway.
    - The first run also installs a private Python into `~/Library/Application Support/GreenKid-MV/`. It downloads Python packages only, never game files or keys.
-4. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.
+3. When the status line says **"Local build ready"**, the log ends with `READY:` and the path of your game app.
 
 Building again later reuses everything that is still valid, so it is much faster.
 
@@ -133,7 +128,7 @@ Building again later reuses everything that is still valid, so it is much faster
 
 1. Click **Show Private Output**. It opens `GreenKid-MV-local` inside your game folder.
 2. Open **Game.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
-3. A settings window appears before the game starts. Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
+3. A settings window appears before the game starts. Under **Game → Resolution** pick **Normal** (1280×720), **Potato** (960×540) or **Render scale**, a slider with both marked on it; you can change it at every start, no rebuild needed. Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
 4. **Quit** with **⌘Q**, or hold the controller's **Home** button for 2 seconds and press **A**. Progress the game hasn't saved is lost, so save in-game first.
 
 Tips for smooth play:
@@ -167,9 +162,9 @@ Tips for smooth play:
 | `Builder files are missing` | Download the full ZIP again from Releases and replace the app. |
 | The app or game won't open ("cannot be opened" / "unidentified developer") | Right-click → **Open**, or **System Settings → Privacy & Security → Open Anyway**. |
 | Black window | Keep the window visible and in front; don't switch to fullscreen. If it stays black, quit and reopen. |
-| Low frame rate | Rebuild with the performance preset ticked, close other apps, plug in power. |
+| Low frame rate | In the game's settings window: **Game's upscaler** MetalFX and **Texture Memory Saver** on; close other apps, plug in power. On Apple GPUs a lower resolution (Potato) saves little. |
 
-Open an issue with your Mac model, macOS version, which preset you used, and the game log. Never attach game files, saves or keys.
+Open an issue with your Mac model, macOS version, which Resolution you used, and the game log. Never attach game files, saves or keys.
 
 ## What belongs on GitHub
 
@@ -214,7 +209,7 @@ For a local game build without the launcher:
 
 ```sh
 bash scripts/greenkid_build.sh --doctor
-bash scripts/greenkid_build.sh --build /path/to/your/game-folder performance
+bash scripts/greenkid_build.sh --build /path/to/your/game-folder
 ```
 
 ## Credits

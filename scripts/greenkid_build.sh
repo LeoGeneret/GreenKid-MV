@@ -18,11 +18,11 @@ doctor() {
 case "${1:-}" in
   --doctor) doctor; echo 'Prerequisite executables found. Engine build performs the exact compiler-version check.'; exit 0 ;;
   --build) shift ;;
-  *) echo 'Usage: greenkid_build.sh --doctor | --build <game-folder> [normal|performance]'; exit 2 ;;
+  *) echo 'Usage: greenkid_build.sh --doctor | --build <game-folder>'; exit 2 ;;
 esac
 GAME_DIR="${1:?Choose a folder containing your own game dump}"
-PRESET="${2:-normal}"
-[[ "$PRESET" == normal || "$PRESET" == performance ]] || { echo 'Unknown resolution preset.'; exit 2; }
+# The resolution (Normal, Potato or the Render scale slider) is chosen in the game app's launcher window at each start: both overlays are packed. An older
+# second argument (normal | performance) is accepted and ignored
 [[ -d "$GAME_DIR" ]] || { echo 'The game folder does not exist.'; exit 2; }
 GAME_DIR="$(cd "$GAME_DIR" && pwd -P)"
 if git -C "$GAME_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -76,7 +76,6 @@ DM_PRESENT_INTERVAL=display
 DM_PRESENT_UPSCALE=off
 DM_FPS_TARGET=60
 SETTINGS
-  if [[ "$PRESET" == performance ]]; then echo 'DM_RES_PRESET=1' >> "$ENV_FILE"; else echo 'DM_RES_PRESET=0' >> "$ENV_FILE"; fi
 fi
-"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" -o "$OUTPUT_APP" --progress lines 2>&1 | tee -a "$BUILD_LOG"
+"$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac-app --work-dir "$WORK_DIR" --keep-extracted --env-file "$ENV_FILE" --fallback-icon "$ENGINE_DIR/launcher/mac/AppIcon.png" -o "$OUTPUT_APP" --progress lines 2>&1 | tee -a "$BUILD_LOG"
 printf '\nREADY: %s\nThis app contains your game. Keep it private; do not upload it.\n' "$OUTPUT_APP"
