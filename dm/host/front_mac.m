@@ -18,6 +18,8 @@
 #include "dm_input.h"
 #include "front.h"
 #include "hle.h"
+#include <sys/sysctl.h>
+#import <IOKit/IOKitLib.h>
 #include "pad_slots.h"
 #include "haptics_apple.h"
 #include "motion_apple.h"
@@ -851,6 +853,44 @@ static NSString *perf_size(float v) {   // the 3D size at scale v for the consol
     int dock = dm_opmode() == 1, w = dock ? DM_GAME_RENDER_BASE_DOCKED_W : DM_GAME_RENDER_BASE_HANDHELD_W, h = dock ? DM_GAME_RENDER_BASE_DOCKED_H : DM_GAME_RENDER_BASE_HANDHELD_H;
     return w && h ? [NSString stringWithFormat:@"%ld×%ld", lround(w * v), lround(h * v)] : nil;
 }
+// The Mac the game runs on, read once: its model's name ("MacBook Pro (14-inch, Nov 2023)", IODeviceTree:/product's product-name on Apple silicon; hw.model otherwise), macOS,
+// the chip, the memory, and the GPU as Metal names it with its core count (the AGXAccelerator's gpu-core-count)
+static NSString *perf_machine(void) {
+    static NSString *s;
+    if (s) return s;
+    char model[128] = "", chip[128] = ""; size_t n = sizeof model; sysctlbyname("hw.model", model, &n, NULL, 0);
+    n = sizeof chip; sysctlbyname("machdep.cpu.brand_string", chip, &n, NULL, 0);
+    uint64_t mem = 0; n = sizeof mem; sysctlbyname("hw.memsize", &mem, &n, NULL, 0);
+    NSString *name = @(model);
+    io_registry_entry_t product = IORegistryEntryFromPath(kIOMainPortDefault, "IODeviceTree:/product");
+    if (product) {
+        CFTypeRef v = IORegistryEntryCreateCFProperty(product, CFSTR("product-name"), kCFAllocatorDefault, 0);
+        if (v && CFGetTypeID(v) == CFDataGetTypeID()) {
+            char buf[128] = ""; CFIndex len = CFDataGetLength((CFDataRef)v); if (len > (CFIndex)sizeof buf - 1) len = sizeof buf - 1;
+            CFDataGetBytes((CFDataRef)v, CFRangeMake(0, len), (UInt8 *)buf);   // a C string with its terminating 0 (buf ends with one either way)
+            NSString *p = @(buf);
+            if (p.length) name = p;
+        }
+        if (v) CFRelease(v);
+        IOObjectRelease(product);
+    }
+    long cores = 0;
+    io_service_t agx = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("AGXAccelerator"));
+    if (agx) {
+        CFTypeRef v = IORegistryEntryCreateCFProperty(agx, CFSTR("gpu-core-count"), kCFAllocatorDefault, 0);
+        if (v && CFGetTypeID(v) == CFNumberGetTypeID()) CFNumberGetValue((CFNumberRef)v, kCFNumberLongType, &cores);
+        if (v) CFRelease(v);
+        IOObjectRelease(agx);
+    }
+    NSOperatingSystemVersion os = NSProcessInfo.processInfo.operatingSystemVersion;
+    NSString *gpu = g_layer.device.name ?: @"GPU";
+    if (chip[0] && [gpu isEqualToString:@(chip)]) gpu = @"GPU";   // Apple silicon: the chip's name twice otherwise ("Apple M3 Pro")
+    s = [NSString stringWithFormat:@"%@ · macOS %ld.%ld%@\n%@ · %llu GB · %@%@", name, (long)os.majorVersion, (long)os.minorVersion,
+         os.patchVersion ? [NSString stringWithFormat:@".%ld", (long)os.patchVersion] : @"", chip[0] ? @(chip) : @"?", (unsigned long long)(mem >> 30), gpu,
+         cores ? [NSString stringWithFormat:@" (%ld GPU cores)", cores] : @""];
+    LOG("front end: performance panel machine: %s", s.UTF8String);
+    return s;
+}
 static NSString *perf_resolution(void) {   // the line on the 3D size
     float v; int r = dm_render_scale_state(&v);
     if (r == 1 && v > 0) {
@@ -876,7 +916,7 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
 @implementation DmPerfPanel
 - (void)build {
     NSView *cv = g_win.contentView;
-    self.box = [[NSView alloc] initWithFrame:NSMakeRect(12, cv.bounds.size.height - 12 - 92, 340, 92)];
+    self.box = [[NSView alloc] initWithFrame:NSMakeRect(12, cv.bounds.size.height - 12 - 124, 380, 124)];
     self.box.wantsLayer = YES; self.box.layer.backgroundColor = [NSColor colorWithWhite:0 alpha:0.6].CGColor; self.box.layer.cornerRadius = 8;
     self.box.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;   // stays at the top left as the window resizes
     self.text = [NSTextField wrappingLabelWithString:@""];
@@ -898,8 +938,8 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
 }
 - (void)render {
     const char *up = getenv("DM_UPSCALER");
-    self.text.stringValue = [NSString stringWithFormat:@"%.0f fps   frame %@   GPU %@\n%@\nUpscaler: %@   ·   ⌘= / ⌘- render scale   ·   ⌘P hide",
-        self.fps, self.fps > 0 ? [NSString stringWithFormat:@"%.1f ms", 1000.0 / self.fps] : @"–", self.gpu >= 0 ? [NSString stringWithFormat:@"%.1f ms", self.gpu] : @"–",
+    self.text.stringValue = [NSString stringWithFormat:@"%@\n%.0f fps   frame %@   GPU %@\n%@\nUpscaler: %@   ·   ⌘= / ⌘- render scale   ·   ⌘P hide",
+        perf_machine(), self.fps, self.fps > 0 ? [NSString stringWithFormat:@"%.1f ms", 1000.0 / self.fps] : @"–", self.gpu >= 0 ? [NSString stringWithFormat:@"%.1f ms", self.gpu] : @"–",
         perf_resolution(), up && !strcmp(up, "metalfx") ? @"MetalFX" : @"the game's"];
 }
 - (void)tick {
