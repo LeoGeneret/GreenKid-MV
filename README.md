@@ -184,6 +184,12 @@ python3 tools/package_builder.py
 
 The resulting `dist/` contains the launcher ZIP, a source ZIP, `SHA256SUMS.txt` and `CONTENT-CHECK.json`. `dist/` is ignored by Git; publish the checked ZIPs as release assets rather than committing the app bundle. No game dump is needed to package this launcher.
 
+To see the game's settings window as this tree packs it, without a game or a build (about a minute, Xcode needed):
+
+```sh
+python3 scripts/preview_launcher.py
+```
+
 For a local game build without the launcher:
 
 ```sh
