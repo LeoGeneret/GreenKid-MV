@@ -3,7 +3,9 @@
 # GreenKid-MV: the resolution test. Plays Ocarina of Time's field-run route (dm/games/0400486024DEC000/bench.tsv: Hyrule Field, standing 20 s,
 # then camera turns and walking) from the player's own save, once per step of the Render scale slider, twice each in turn, and writes one table to
 # compare them: GreenKid-MV-local/bench/<date-time>/results.md (and latest-results.md beside it). scripts/bench.py does the measuring.
-# Usage: greenkid_bench.sh <game-folder>   (the folder greenkid_build.sh built; the game app closed; the Mac left alone for about 35 minutes)
+# Usage: greenkid_bench.sh <game-folder> [<save folder>] [--open]   (the folder greenkid_build.sh built; the game app closed; the Mac left alone for about 35 minutes)
+#   <save folder>: the save to start from (default the game app's, ~/Library/Application Support/nxnative/<title ID>/save). --open: the table opened when it ends
+#   (the game app's Test Resolutions button, dm/mac/Launcher.swift, runs it so, its output in GreenKid-MV-local/bench/test.log)
 # Builds only from the player's files. No game data belongs in this repository.
 set -euo pipefail
 export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
@@ -17,6 +19,8 @@ STEPS=("50pct-960x540-Potato:0.5" "58pct-1120x630:0.5833" "67pct-1280x720-Normal
        "83pct-1600x900:0.8333" "92pct-1760x990:0.9167" "100pct-1920x1080-Native:1.0")
 
 GAME_DIR="${1:?Choose the game folder you built}"
+SAVE_ARG=""; OPEN=0
+for x in "${@:2}"; do if [[ "$x" == --open ]]; then OPEN=1; else SAVE_ARG="$x"; fi; done
 [[ -d "$GAME_DIR" ]] || { echo 'The game folder does not exist.'; exit 2; }
 GAME_DIR="$(cd "$GAME_DIR" && pwd -P)"
 PRIVATE_DIR="$GAME_DIR/GreenKid-MV-local"
@@ -30,8 +34,8 @@ PYTHON="$SUPPORT_DIR/venv/bin/python3"
 [[ -f "$ENGINE_DIR/.copy-complete" && -x "$PYTHON" ]] || { echo 'The engine of this builder version is not prepared: build the game again with this builder first.'; exit 2; }
 
 # The game app's save (dm/mac/launcher.c: ~/Library/Application Support/nxnative/<title ID>/save); each run plays a copy of it
-SAVE_DIR=""
-for d in "$HOME/Library/Application Support/nxnative/"*; do
+SAVE_DIR="$SAVE_ARG"
+[[ -n "$SAVE_DIR" ]] || for d in "$HOME/Library/Application Support/nxnative/"*; do
   [[ "$(basename "$d" | tr '[:lower:]' '[:upper:]')" == "$GAME_ID" && -d "$d/save" ]] && SAVE_DIR="$d/save"
 done
 if [[ -z "$SAVE_DIR" ]] || [[ -z "$(find "$SAVE_DIR" -type f -print -quit)" ]]; then
@@ -71,5 +75,8 @@ if [[ -f "$OUT/results.md" ]]; then
   } > "$OUT/report.md"
   cp "$OUT/report.md" "$PRIVATE_DIR/bench/latest-results.md"
   printf '\nRESULTS: %s\n' "$PRIVATE_DIR/bench/latest-results.md"
+  [[ $OPEN == 1 ]] && open "$PRIVATE_DIR/bench/latest-results.md"
+elif [[ $OPEN == 1 ]]; then
+  osascript -e 'display alert "Resolution test stopped" message "GreenKid-MV-local/bench/test.log says why."' >/dev/null 2>&1 || true
 fi
 exit $rc

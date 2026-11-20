@@ -29,7 +29,7 @@ Not released yet: build it from source ([Building GreenKid-MV](#building-greenki
 - **Upscaling:** MetalFX now draws Ocarina of Time's own upscaler networks through upstream's code (every NDSR pack, `_vr` packs included; about 1.4 ms less GPU a frame measured upstream on an M4 Pro with **Game's upscaler: MetalFX**), reads the game's texture in its own format, and takes the game's bias mask as its reactive mask.
 - **Performance:** pipelines prewarmed in the Mac app, pipeline archives opened 3-6x faster, background pipeline lookups, unused border corrections compiled out of shaders, steadier frame pacing after a late frame, and a shader build that uses every core.
 - **Area changes:** render targets that were drawn over are released a few at a time instead of all at once, which took a 120-250 ms frame once a second (kid-with-sword-remake L6.3).
-- **Resolution test** (builder, **Test Resolutions (Hyrule Field)**): the 7 slider steps on a scripted Hyrule Field walk from your save, one table to compare them ([how](#test-the-resolutions-optional)).
+- **Resolution test** (the game's settings window, **Test Resolutions…**): the 7 slider steps on a scripted Hyrule Field walk from your save, one table to compare them ([how](#test-the-resolutions-optional)).
 - **Render scale slider** (launcher, Game → Resolution: **Render scale**): the 3D size from 50 % to 100 % of 1920×1080 in twelfths, each step a whole 16:9 size, with **Potato** (960×540), **Normal** (1280×720) and **Native** (1920×1080) marked on it. Normal and Potato stay as they were. Ocarina of Time v131072 only (the render-scale stub from kid-with-sword-remake).
 - **Texture Memory Saver** (launcher, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory; slightly softer up close. On kid-with-sword-remake's Mac walk the longest frames went from 2.7 s / 0.5 s to 0.4 s / 0.3 s (kid-with-sword-remake L7).
 - **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
@@ -127,13 +127,13 @@ Building again later reuses everything that is still valid, so it is much faster
 
 ### Test the resolutions (optional)
 
-The builder's **Test Resolutions (Hyrule Field)** button, between **Build My Local Game** and **Show Private Output**, measures the game at each of the 7 steps of the Render scale slider (960×540 to 1920×1080), on the same scripted walk in Hyrule Field, twice each.
+The game's settings window (the one before **Play**) has a **Test Resolutions…** button, left of **Quit** and **Play**. It measures the game at each of the 7 steps of the Render scale slider (960×540 to 1920×1080), on the same scripted walk in Hyrule Field, twice each.
 
-1. First play **Game.app** until Link stands in **Hyrule Field**, save there and quit. The test starts every run from a copy of that save; your save is never changed.
-2. Click **Test Resolutions (Hyrule Field)**. It takes about **35 minutes**: game windows open and close by themselves. Keep the Mac plugged in and don't use it meanwhile, or the numbers are off.
-3. At the end the results table opens (`GreenKid-MV-local/bench/latest-results.md`). Compare **gpu_p50** and **frame_p99** first: two steps can both show 60 fps, and the GPU time says how much room each leaves.
+1. First play the game until Link stands in **Hyrule Field**, save there and quit. The test starts every run from a copy of that save; your save is never changed.
+2. Open the game, click **Test Resolutions…**, then **Start Test**. The settings window closes and the game starts 14 times by itself, about **35 minutes**. Keep the Mac plugged in and don't use it meanwhile, or the numbers are off.
+3. At the end the results table opens (`GreenKid-MV-local/bench/latest-results.md`; the test's log is `bench/test.log`). Compare **gpu_p50** and **frame_p99** first: two steps can both show 60 fps, and the GPU time says how much room each leaves.
 
-The walk is timed from the game's start (scripts/bench.py, route `field-run`). If a screenshot in a run folder does not show Link in Hyrule Field, the timings do not fit your save. For the command line: `bash scripts/greenkid_bench.sh /path/to/your/game-folder`.
+The button appears in an Ocarina of Time app this builder made (it runs `scripts/greenkid_bench.sh` from the engine named in `GreenKid-MV-local/greenkid-engine.txt`). The walk is timed from the game's start (scripts/bench.py, route `field-run`): if a screenshot in a run folder does not show Link in Hyrule Field, the timings do not fit your save. From a terminal: `bash scripts/greenkid_bench.sh /path/to/your/game-folder`.
 
 ### 6. Play
 
