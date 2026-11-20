@@ -8,6 +8,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <limits.h>
+#include <math.h>
 #include <mach-o/getsect.h>
 #include <mach-o/ldsyms.h>
 #include "hle.h"
@@ -359,13 +360,52 @@ uint8_t *dm_fps_state;
 int dm_fps_step_max;   // the largest step the stubs give the game (STEP_MAX in its fixups table; 0 = FSTEP_MAX): the frame step holds frames and pays back within it (hle_nvn.c)
 static const char *g_fps_mod;   // the module holding the state page (for the log)
 static float g_render_scale_max = 1.0f;   // the render-scale stub's largest scale (RENDER_SCALE in its fixups table; 1 for a stub that only lowers the game's size)
+static int g_render_scale_stub;   // a module has a render-scale stub (RENDER_SCALE in its fixups table): state +0x10 is read by it
 static void install_fps_state(module_t *m) {
     if (m->fps_state_off + 0x40 > m->size || m->fps_state_off < m->key_page_off + m->key_page_size) die("%s: frame step state page out of range", m->name);
     dm_fps_state = m->base + m->fps_state_off; g_fps_mod = m->name; dm_fps_step_max = (int)m->step_max;
     if (m->render_scale_max > 1) g_render_scale_max = (float)m->render_scale_max;
+    if (m->render_scale_max) g_render_scale_stub = 1;
 }
 // The settings in the state page, written when the game starts (main.c, after host loading): on iOS the loading runs at app launch, before the launcher has set DM_FPS_TARGET and
 // DM_RENDER_SCALE (Launcher.swift), and nothing reads the page before the game runs
+// GreenKid-MV: the render scale while the game runs (front_mac.m's View menu, ⌘= / ⌘-; its performance panel). A render-scale stub reads state +0x10 at every frame and asks the
+// game for new 3D sizes when it differs from the stored scale (Ocarina of Time's patches.py render_scale), so a new value there takes effect at the next frame, as the game's own
+// dynamic resolution does. Steps follow the profile's slider (game.tsv render_scale, the header's DM_GAME_RENDER_SCALE_*); a game with the Resolution presets steps only while its
+// Resolution is Render scale (DM_RES_PRESET=2, see dm_fps_state_apply). Another game's stub may read the value at other moments only: the change then waits for one
+#ifndef DM_GAME_RENDER_SCALE_MIN
+#define DM_GAME_RENDER_SCALE_MIN 0.5f
+#define DM_GAME_RENDER_SCALE_MAX 1.0f
+#define DM_GAME_RENDER_SCALE_STEP 0.05f
+#endif
+// 1: steps can be taken, *now the scale in use (0: the game's own size); 0: no render-scale stub in this game; -1: the Resolution is a preset, not Render scale
+int dm_render_scale_state(float *now) {
+    if (now) *now = 0;
+    if (!dm_fps_state || !g_render_scale_stub) return 0;
+    uint32_t bits = __atomic_load_n((uint32_t *)(dm_fps_state + 0x10), __ATOMIC_RELAXED); float v; memcpy(&v, &bits, sizeof v);
+    if (now) *now = v > 0 && v <= g_render_scale_max ? v : 0;
+#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
+    { const char *rp = getenv("DM_RES_PRESET"); if (!rp || atoi(rp) != 2) return -1; }
+#endif
+    return 1;
+}
+// One step up (dir 1) or down (-1) of the profile's slider, held to its range: written for the stub, and to DM_RENDER_SCALE. Returns dm_render_scale_state's answer, *now the new scale
+int dm_render_scale_step(int dir, float *now) {
+    float cur; int r = dm_render_scale_state(&cur);
+    if (r != 1) { if (now) *now = cur; return r; }
+    float lo = DM_GAME_RENDER_SCALE_MIN, hi = DM_GAME_RENDER_SCALE_MAX < g_render_scale_max ? DM_GAME_RENDER_SCALE_MAX : g_render_scale_max, st = DM_GAME_RENDER_SCALE_STEP;
+    if (lo < 0.5f) lo = 0.5f;   // dm_fps_state_apply takes no less
+    if (!(cur >= lo && cur <= hi)) cur = hi;   // the game's own size: stepping starts from the full one
+    int n = (int)lroundf((hi - lo) / st), k = (int)lroundf((cur - lo) / st) + dir;
+    if (k < 0) k = 0;
+    if (k > n) k = n;
+    float v = k == n ? hi : lo + (float)k * st;
+    uint32_t bits; memcpy(&bits, &v, sizeof bits); __atomic_store_n((uint32_t *)(dm_fps_state + 0x10), bits, __ATOMIC_RELAXED);
+    char b[16]; snprintf(b, sizeof b, "%.4f", v); setenv("DM_RENDER_SCALE", b, 1);
+    LOG("render scale %.4f while the game runs (step %d of %d)", v, k, n);
+    if (now) *now = v;
+    return 1;
+}
 void dm_fps_state_apply(void) {
     if (!dm_fps_state) return;
     const char *e = getenv("DM_FPS_TARGET"); int t = e ? atoi(e) : DM_GAME_FPS_TARGET;

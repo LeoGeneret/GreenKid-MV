@@ -831,6 +831,107 @@ static void cheats_open_folder(void) {
 // background Finder window, see DmCheatsDropView). The rows are rebuilt
 // when what they were built from changes (a reload, the search text), updated in place otherwise; a ~1 s timer runs only
 // while the panel is visible
+// ---------- GreenKid-MV: the View menu: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-) ----------
+// The panel, at the window's top left over the game: the frames shown a second, the mean frame time, the GPU time of the last frames (mtl_gpu_ms), the 3D size and its Render scale
+// step (named from the profile's marks: Potato, Normal, Native), the Resolution preset and the game's upscaler. A step of the render scale (loader.c dm_render_scale_step) shows it for
+// 3 s when it is hidden, and is kept as the launcher's choice (launcher.DM_RENDER_SCALE, as the settings window saves it) for the next start. Shown or not is kept too
+uint64_t mtl_present_count(void);
+double mtl_gpu_ms(uint64_t f);
+uint64_t dm_nvn_frame_count(void);
+int dm_render_scale_state(float *now);
+int dm_render_scale_step(int dir, float *now);
+static NSString *perf_mark(float v) {   // the profile's name for a scale (render_scale_marks), or nil
+    for (NSString *m in [@(DM_GAME_RENDER_SCALE_MARKS) componentsSeparatedByString:@","]) {
+        NSArray<NSString *> *kv = [m componentsSeparatedByString:@"="];
+        if (kv.count == 2 && fabs(kv[0].doubleValue - v) < 0.001) return kv[1];
+    }
+    return nil;
+}
+static NSString *perf_size(float v) {   // the 3D size at scale v for the console mode, "1280×720", or nil without the profile's render_base
+    int dock = dm_opmode() == 1, w = dock ? DM_GAME_RENDER_BASE_DOCKED_W : DM_GAME_RENDER_BASE_HANDHELD_W, h = dock ? DM_GAME_RENDER_BASE_DOCKED_H : DM_GAME_RENDER_BASE_HANDHELD_H;
+    return w && h ? [NSString stringWithFormat:@"%ld×%ld", lround(w * v), lround(h * v)] : nil;
+}
+static NSString *perf_resolution(void) {   // the line on the 3D size
+    float v; int r = dm_render_scale_state(&v);
+    if (r == 1 && v > 0) {
+        NSString *size = perf_size(v), *name = perf_mark(v);
+        return [NSString stringWithFormat:@"3D %@%ld %%%@", size ? [size stringByAppendingString:@"  "] : @"", lround(v * 100), name ? [@" · " stringByAppendingString:name] : @""];
+    }
+#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
+    if (r == -1) {
+        const char *p = getenv("DM_RES_PRESET"); int potato = p && (atoi(p) == 1 || !strcmp(p, "potato"));
+        return potato ? @"3D 960×540 · Potato preset (⌘= / ⌘- need Render scale)" : @"3D 1280×720 · Normal preset (⌘= / ⌘- need Render scale)";
+    }
+#endif
+    return @"3D: the game's own size";
+}
+@interface DmPerfPanel : NSObject <NSMenuItemValidation>
+@property (nonatomic, strong) NSView *box;
+@property (nonatomic, strong) NSTextField *text;
+@property (nonatomic, strong) NSMenuItem *toggleItem;
+@property (nonatomic) BOOL shown;
+@property (nonatomic) double flashUntil, t0, fps, gpu;   // gpu < 0: no GPU time read yet
+@property (nonatomic) uint64_t n0;
+@end
+@implementation DmPerfPanel
+- (void)build {
+    NSView *cv = g_win.contentView;
+    self.box = [[NSView alloc] initWithFrame:NSMakeRect(12, cv.bounds.size.height - 12 - 92, 340, 92)];
+    self.box.wantsLayer = YES; self.box.layer.backgroundColor = [NSColor colorWithWhite:0 alpha:0.6].CGColor; self.box.layer.cornerRadius = 8;
+    self.box.autoresizingMask = NSViewMaxXMargin | NSViewMinYMargin;   // stays at the top left as the window resizes
+    self.text = [NSTextField wrappingLabelWithString:@""];
+    self.text.frame = NSInsetRect(self.box.bounds, 10, 8); self.text.autoresizingMask = NSViewWidthSizable | NSViewHeightSizable;
+    self.text.font = [NSFont monospacedDigitSystemFontOfSize:12 weight:NSFontWeightMedium]; self.text.textColor = NSColor.whiteColor;
+    [self.box addSubview:self.text];
+    self.box.hidden = YES; [cv addSubview:self.box];
+    self.n0 = mtl_present_count(); self.t0 = CACurrentMediaTime(); self.gpu = -1;
+    [NSTimer scheduledTimerWithTimeInterval:0.25 repeats:YES block:^(NSTimer *t) { (void)t; [self tick]; }];
+    if ([NSUserDefaults.standardUserDefaults boolForKey:@"greenkid.perfPanel"]) [self toggle:nil];
+}
+- (void)measure {   // once a second: the frames shown over that second, and the mean GPU time of the last frames the GPU finished
+    double now = CACurrentMediaTime(); uint64_t n = mtl_present_count();
+    self.fps = now - self.t0 < 3 ? (n - self.n0) / (now - self.t0) : 0;   // a longer span: the app was in the background, no reading
+    self.n0 = n; self.t0 = now;
+    double g = 0; int ng = 0; uint64_t f = dm_nvn_frame_count();
+    for (uint64_t k = 2; k <= 32 && k <= f; k++) { double x = mtl_gpu_ms(f - k); if (x >= 0) { g += x; ng++; } }
+    self.gpu = ng ? g / ng : -1;
+}
+- (void)render {
+    const char *up = getenv("DM_UPSCALER");
+    self.text.stringValue = [NSString stringWithFormat:@"%.0f fps   frame %@   GPU %@\n%@\nUpscaler: %@   ·   ⌘= / ⌘- render scale   ·   ⌘P hide",
+        self.fps, self.fps > 0 ? [NSString stringWithFormat:@"%.1f ms", 1000.0 / self.fps] : @"–", self.gpu >= 0 ? [NSString stringWithFormat:@"%.1f ms", self.gpu] : @"–",
+        perf_resolution(), up && !strcmp(up, "metalfx") ? @"MetalFX" : @"the game's"];
+}
+- (void)tick {
+    double now = CACurrentMediaTime();
+    if (now - self.t0 >= 1.0) [self measure];
+    BOOL visible = self.shown || now < self.flashUntil;
+    self.box.hidden = !visible;
+    if (visible) [self render];
+}
+- (void)toggle:(id)sender {
+    (void)sender; self.shown = !self.shown; self.flashUntil = 0;
+    self.toggleItem.title = self.shown ? @"Hide Performance Panel" : @"Show Performance Panel";
+    [NSUserDefaults.standardUserDefaults setBool:self.shown forKey:@"greenkid.perfPanel"];
+    [self tick];
+    LOG("front end: performance panel %s", self.shown ? "shown" : "hidden");
+}
+- (void)step:(int)dir {
+    float v; int r = dm_render_scale_step(dir, &v);
+    if (r == 1) [NSUserDefaults.standardUserDefaults setObject:[NSString stringWithFormat:@"%.4f", v] forKey:@"launcher.DM_RENDER_SCALE"];   // the settings window's choice at the next start
+    else NSBeep();
+    self.flashUntil = CACurrentMediaTime() + 3;   // the new size shown for 3 s, the panel hidden or not
+    [self tick];
+}
+- (void)scaleUp:(id)sender { (void)sender; [self step:1]; }
+- (void)scaleDown:(id)sender { (void)sender; [self step:-1]; }
+- (BOOL)validateMenuItem:(NSMenuItem *)item {
+    if (item.action == @selector(scaleUp:) || item.action == @selector(scaleDown:)) return dm_render_scale_state(NULL) == 1;
+    return YES;
+}
+@end
+static DmPerfPanel *g_perf;
+
 @interface DmCheatsPanel : NSObject <NSWindowDelegate, NSTextFieldDelegate, NSSearchFieldDelegate>
 - (void)show;      // create the panel if needed, order it front (not key) and refresh
 - (void)refresh;   // the one refresh for every trigger: shown, a click, Reload, a Cheats-menu toggle, the 1 s timer
@@ -1639,9 +1740,18 @@ void front_run(void (*guest)(void)) {
         [[bar addItemWithTitle:@"Cheats" action:nil keyEquivalent:@""] setSubmenu:cm];
         if (getenv("DM_CHEATS_WINDOW") && atoi(getenv("DM_CHEATS_WINDOW")))   // the Cheats panel open from the start (beside the game, not key)
             dispatch_async(dispatch_get_main_queue(), ^{ [g_cheats_menu showPanel:nil]; });
+        // GreenKid-MV: View: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-; DmPerfPanel above)
+        g_perf = [DmPerfPanel new];
+        NSMenu *vm = [[NSMenu alloc] initWithTitle:@"View"];
+        g_perf.toggleItem = [vm addItemWithTitle:@"Show Performance Panel" action:@selector(toggle:) keyEquivalent:@"p"]; g_perf.toggleItem.target = g_perf;
+        [vm addItem:NSMenuItem.separatorItem];
+        [vm addItemWithTitle:@"Increase Render Scale" action:@selector(scaleUp:) keyEquivalent:@"="].target = g_perf;
+        [vm addItemWithTitle:@"Decrease Render Scale" action:@selector(scaleDown:) keyEquivalent:@"-"].target = g_perf;
+        [[bar addItemWithTitle:@"View" action:nil keyEquivalent:@""] setSubmenu:vm];
         [[bar addItemWithTitle:@"Window" action:nil keyEquivalent:@""] setSubmenu:wm];
         [wm addItemWithTitle:@"Enter Full Screen" action:@selector(toggleFullScreen:) keyEquivalent:@"f"].keyEquivalentModifierMask = NSEventModifierFlagControl | NSEventModifierFlagCommand;
         NSApp.mainMenu = bar;
+        [g_perf build];
         const char *fs = getenv("DM_FULLSCREEN");   // 1 (or any value but 0): start in fullscreen; 0, the settings window's Window, or unset: a window
         if (fs && strcmp(fs, "0")) {
             // A game opened from a fullscreen app starts while macOS leaves that Space. Wait for activation and for the window to reach the active Space before asking for fullscreen
