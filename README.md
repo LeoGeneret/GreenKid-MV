@@ -13,29 +13,28 @@ Bowshot packages other developers’ native-execution work with a small Mac laun
 
 ## Status
 
-**Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. The engine is upstream nxnative's code as of 21 Nov 2026 (`seedds/nxnative` main `8c94bd1e`) plus Bowshot's additions and changes from kid-with-sword-remake, pinned as `bowshot-0.1.0-nxnative-8c94bd1e`; it does not silently track upstream updates. See [What's new](#whats-new).
+**Experimental preview, version 0.1.0.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. The engine is upstream nxnative's code as of 21 Nov 2026 (`seedds/nxnative` main `8c94bd1e`) plus Bowshot's additions and changes from kid-with-sword-remake, pinned as `bowshot-0.1.0-nxnative-8c94bd1e`; it does not silently track upstream updates. See [Highlights](#highlights).
 
 It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, a Render scale slider for the 3D size, and settings tuned to hold 60 FPS without overheating a fanless Mac. It is still a preview: results on other Macs, dumps and areas have not been certified.
 
 ## Download
 
-No Bowshot release has been published yet: build the builder from source ([Building Bowshot](#building-bowshot)), or take the newest `Bowshot-<version>-macOS-arm64.zip` from this repository's [Releases](https://github.com/LeoGeneret/Bowshot/releases) once there is one, then follow [Setup and running](#setup-and-running). The download is the builder only: no game files are included.
+**Latest: [Bowshot 0.1.0](https://github.com/LeoGeneret/Bowshot/releases/tag/v0.1.0)** (Apple silicon, the first release). Get `Bowshot-0.1.0-macOS-arm64.zip` from that page, then follow [Setup and running](#setup-and-running), or make **Bowshot.app** from this source ([2. Get Bowshot](#2-get-bowshot), option B). The download is the builder only: no game files are included.
 
-## What's new
+## Highlights
 
-The first build converts every shader (the shader chain version changed).
+What 0.1.0 brings (the full list is in [CHANGELOG.md](CHANGELOG.md)):
 
-- **Engine moved to upstream nxnative main `8c94bd1e`** (21 Nov 2026, about 635 more upstream commits). Among the latest: Ocarina of Time's foliage no longer crashes Apple's mesh compiler on macOS 26.6 (#3069), its shader map drops a false shader (#3010), shader library files are unmapped once loaded (less memory), and the audio thread gets a real-time deadline.
-- **Upscaling:** MetalFX now draws Ocarina of Time's own upscaler networks through upstream's code (every NDSR pack, `_vr` packs included; about 1.4 ms less GPU a frame measured upstream on an M4 Pro with **Game's upscaler: MetalFX**), reads the game's texture in its own format, and takes the game's bias mask as its reactive mask.
-- **Performance:** pipelines prewarmed in the Mac app, pipeline archives opened 3-6x faster, background pipeline lookups, unused border corrections compiled out of shaders, steadier frame pacing after a late frame, and a shader build that uses every core.
-- **Area changes:** render targets that were drawn over are released a few at a time instead of all at once, which took a 120-250 ms frame once a second (kid-with-sword-remake L6.3).
-- **Render scale slider** (launcher, Game → **Render scale**): the 3D size from 50 % to 100 % of 1920×1080 in twelfths, each step a whole 16:9 size, with **Potato** (960×540), **Normal** (1280×720, the default) and **Native** (1920×1080) marked on it. It replaces the earlier Normal / Potato presets and their game-file overlays. Ocarina of Time v131072 only (the render-scale stub from kid-with-sword-remake).
-- **In game:** **⌥⌘P** shows or hides the Performance HUD (Apple's Metal HUD: frames a second, GPU time, memory, frame-time graph) without restarting, and **⌘= / ⌘-** move the Render scale one step while you play; the step you leave is the next start's. Both are in the game window's **View** menu, and the settings window lists them under **While you play**.
-- **Texture Memory Saver** (launcher, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory; slightly softer up close. On kid-with-sword-remake's Mac walk the longest frames went from 2.7 s / 0.5 s to 0.4 s / 0.3 s (kid-with-sword-remake L7).
-- **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
-- Kept: the GPU-hang watchdog, the dispatch and texel-fetch clamps.
-- Removed as unused by default: the M1/M2 task isolation (`DM_NVN_ISOLATE_TASK`), damaged-file substitutes (`romfs_substitute`, `DM_ROMFS_SUBST`) and the SyncWait fence report.
-- Removed, as upstream rewrote the code under them: the earlier chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
+
+- **Engine:** upstream nxnative main `8c94bd1e` (21 Nov 2026), with Ocarina of Time's lighting, terrain and stability fixes; its foliage no longer crashes Apple's mesh compiler on macOS 26.6 (#3069), shader library files are unmapped once loaded (less memory) and the audio thread gets a real-time deadline. The first build converts every shader.
+- **Upscaling:** MetalFX draws Ocarina of Time's own upscaler networks (every NDSR pack, `_vr` packs included): about 1.4 ms less GPU a frame measured upstream on an M4 Pro. It is the default here; **Game's upscaler: Game's own** keeps Nintendo's network.
+- **Render scale slider** (settings window, Game → **Render scale**): the 3D size from 50 % to 100 % of 1920×1080 in twelfths, each step a whole 16:9 size, with **Potato** (960×540), **Normal** (1280×720, the default) and **Native** (1920×1080) marked on it (the render-scale stub from kid-with-sword-remake).
+- **In game:** **⌘= / ⌘-** move the Render scale one step while you play (the step you leave is the next start's), and **⌥⌘P** shows or hides the **Performance HUD**, Apple's Metal HUD (frames a second, GPU time, memory, frame-time graph). Both are in the game window's **View** menu; the settings window lists them under **While you play**.
+- **Performance:** pipelines prewarmed in the Mac app, pipeline archives opened 3-6x faster, background pipeline lookups, steadier frame pacing after a late frame, and render targets drawn over released a few at a time instead of in one 120-250 ms frame (kid-with-sword-remake L6.3).
+- **Texture Memory Saver** (settings window, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory, slightly softer up close (kid-with-sword-remake L7).
+- **Microphone** (settings window, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
+- **Safeguards:** a GPU-hang watchdog stops the game before a stuck GPU freezes the Mac; GPU-written dispatch counts and texel fetches past a texture's edge are clamped (the latter removes a hard edge in the ground mist).
+- **Builder window:** a blue **Build My Local Game** button once your folder is valid, a progress bar with the current step and the time left, and the full log folded under **Show build log** (blocking errors in red, warnings in orange, the finished app in green).
 
 ## Features
 
@@ -59,9 +58,21 @@ Follow these steps in order. Steps 1–3 are one-time setup. You need your own g
 
 ### 2. Get Bowshot
 
+**A. From a release**
+
 1. From this project's [Releases](https://github.com/LeoGeneret/Bowshot/releases), download the newest `Bowshot-<version>-macOS-arm64.zip` (and `SHA256SUMS.txt` if you want to check the download with `shasum -a 256 -c SHA256SUMS.txt`).
 2. Unzip it and move **Bowshot.app** to **Applications**.
 3. The first time, **right-click the app → Open → Open**. Preview builds are not notarized, so a normal double-click is blocked once. If macOS still refuses, open **System Settings → Privacy & Security** and choose **Open Anyway**.
+
+**B. From this source** (do step 3 first: it needs Xcode and uv)
+
+```sh
+git clone https://github.com/LeoGeneret/Bowshot.git ~/Developer/Bowshot
+cd ~/Developer/Bowshot
+uv run --no-project --python 3.14 tools/package_builder.py
+```
+
+It checks that no game material is in the source, builds and signs `dist/Bowshot.app` (ad hoc) and writes the release ZIPs beside it. Move **dist/Bowshot.app** to **Applications** and open it once with **right-click → Open**. To make it again later, delete `dist/` first.
 
 ### 3. Install the tools (once)
 
@@ -74,7 +85,7 @@ brew install uv xcodegen zstd glslang
 xcodebuild -downloadComponent MetalToolchain
 ```
 
-To confirm everything is in place, run the builder's check (adjust the path if the app isn't in Applications):
+`uv` also brings the Python the builder installs for itself (and the one option B uses). To confirm everything is in place, run the builder's check (adjust the path if the app isn't in Applications):
 
 ```sh
 bash /Applications/Bowshot.app/Contents/Resources/engine/scripts/bowshot_build.sh --doctor
@@ -134,16 +145,17 @@ Tips for smooth play:
 
 | Message or problem | What to do |
 |---|---|
-| `Missing prerequisite: …` or `uv is missing` | Redo step 2, then run the `--doctor` check. |
-| `Install Xcode 27.2 and its Metal Toolchain` or a Metal compiler version error | Install exactly Xcode 27.2, open it once, run `xcodebuild -downloadComponent MetalToolchain`. Don't bypass the version check. |
-| `Choose a game folder outside a Git repository` / `Keep game files outside the builder source` | Move your game folder somewhere else (step 4). |
+| `ERROR: Missing prerequisite: …` or `uv is missing` | Redo step 3, then run the `--doctor` check. |
+| `ERROR: Install Xcode 27.2 and its Metal Toolchain` or a Metal compiler version error | Install exactly Xcode 27.2, open it once, run `xcodebuild -downloadComponent MetalToolchain`. Don't bypass the version check. |
+| `Choose a game folder outside a Git repository` / `Keep game files outside the builder` | Move your game folder somewhere else (step 4). |
 | `The supported Ocarina of Time v131072 RomFS image was not found` | The folder doesn't contain update **v131072**. This preview supports only that update. |
-| `Builder files are missing` | Download the full ZIP again from Releases and replace the app. |
+| `Builder files are missing` | Download the full ZIP again from Releases (or make the app again, option B) and replace it. |
 | The app or game won't open ("cannot be opened" / "unidentified developer") | Right-click → **Open**, or **System Settings → Privacy & Security → Open Anyway**. |
 | Black window | Keep the window visible and in front; don't switch to fullscreen. If it stays black, quit and reopen. |
-| Low frame rate | In the game's settings window: **Game's upscaler** MetalFX and **Texture Memory Saver** on; close other apps, plug in power. On Apple GPUs a lower Render scale (Potato) saves little. |
+| Low frame rate | In the game's settings window: keep **Game's upscaler** on MetalFX, turn **Texture Memory Saver** on, and try a lower **Render scale**; close other apps, plug in power. **⌥⌘P** shows the GPU time a frame: above about 16 ms, 60 fps cannot hold. |
+| A build stops | The red line in the build log says why; the whole log is `Bowshot-local/build.log`. |
 
-Open an issue with your Mac model, macOS version, which Resolution you used, and the game log. Never attach game files, saves or keys.
+Open an issue with your Mac model, macOS version, your Render scale, and the game log. Never attach game files, saves or keys.
 
 ## What belongs on GitHub
 
@@ -174,23 +186,23 @@ Ignore rules do not remove files already committed to Git. This snapshot starts 
 
 ## Building Bowshot
 
-This creates the **game-free launcher**, not a game:
+This makes the **game-free builder**, not a game. The repository's Python tools need Python 3.12 or newer, which `uv` provides (macOS's own `python3` may be older):
 
 ```sh
-python3 tools/check_content.py
-python3 -m unittest discover -s tests -v
-python3 tools/package_builder.py
+uv run --no-project --python 3.14 tools/check_content.py
+uv run --no-project --python 3.14 -m unittest discover -s tests -v
+uv run --no-project --python 3.14 tools/package_builder.py
 ```
 
-The resulting `dist/` contains the launcher ZIP, a source ZIP, `SHA256SUMS.txt` and `CONTENT-CHECK.json`. `dist/` is ignored by Git; publish the checked ZIPs as release assets rather than committing the app bundle. No game dump is needed to package this launcher.
+The resulting `dist/` holds `Bowshot.app`, the builder ZIP, a source ZIP, `SHA256SUMS.txt` and `CONTENT-CHECK.json`. `dist/` is ignored by Git; publish the checked ZIPs as release assets rather than committing the app bundle. No game dump is needed.
 
-To see the game's settings window as this tree packs it, without a game or a build (about a minute, Xcode needed):
+To see the game's settings window as this tree packs it, without a game or a build (about a minute):
 
 ```sh
-python3 scripts/preview_launcher.py
+uv run --no-project --python 3.14 scripts/preview_launcher.py
 ```
 
-For a local game build without the launcher:
+For a local game build without the builder window:
 
 ```sh
 bash scripts/bowshot_build.sh --doctor
