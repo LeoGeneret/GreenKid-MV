@@ -13,13 +13,26 @@ GreenKid-MV packages other developers’ native-execution work with a small Mac 
 
 ## Status
 
-**Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. Since 0.3.0 the engine is upstream nxnative's code as of 10 Nov 2026 (`seedds/nxnative` main `ab41d6a1`) plus GreenKid-MV's additions, pinned as `greenkid-v2.1-564653c85030`; it does not silently track upstream updates.
+**Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. On this branch the engine is upstream nxnative's code as of 20 Nov 2026 (`seedds/nxnative` main `57174ec5`) plus GreenKid-MV's additions and two changes from kid-with-sword-remake, pinned as `greenkid-v2.2-nxnative-57174ec5` (0.3.0 had main `ab41d6a1`); it does not silently track upstream updates. See [What's new on this branch](#whats-new-on-this-branch).
 
 It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, the Normal / Potato resolution presets and settings tuned to hold 60 FPS without overheating a fanless Mac (see [What's new in 0.3.0](#whats-new-in-030)). In the maintainer's own play-testing on a fanless MacBook Air, 0.2.0 ran smoothly with the lighting flicker gone; 0.3.0 is in that same testing now. It is still a preview: results on other Macs, dumps and areas have not been certified. The local Zelda performance investigation remains separate from the public launcher.
 
 ## Download
 
 **Latest: [GreenKid-MV 0.3.0-preview](https://github.com/adi0900/GreenKid-MV/releases/tag/v0.3.0-preview)** (Apple silicon). Get `GreenKid-MV-0.3.0-preview-macOS-arm64.zip` from that page, then follow [Setup and running](#setup-and-running). The download is the builder only: no game files are included.
+
+## What's new on this branch
+
+Not released yet: build it from source ([Building GreenKid-MV](#building-greenkid-mv)) to try it. The first build converts every shader again (the shader chain version changed).
+
+- **Engine moved to upstream nxnative main `57174ec5`** (20 Nov 2026, about 600 more upstream commits).
+- **Upscaling:** MetalFX now draws Ocarina of Time's own upscaler networks through upstream's code (every NDSR pack, `_vr` packs included; about 1.4 ms less GPU a frame measured upstream on an M4 Pro with **Game's upscaler: MetalFX**), reads the game's texture in its own format, and takes the game's bias mask as its reactive mask.
+- **Performance:** pipelines prewarmed in the Mac app, pipeline archives opened 3-6x faster, background pipeline lookups, unused border corrections compiled out of shaders, steadier frame pacing after a late frame, and a shader build that uses every core.
+- **Area changes:** render targets that were drawn over are released a few at a time instead of all at once, which took a 120-250 ms frame once a second (kid-with-sword-remake L6.3).
+- **Texture Memory Saver** (launcher, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory; slightly softer up close. On kid-with-sword-remake's Mac walk the longest frames went from 2.7 s / 0.5 s to 0.4 s / 0.3 s (kid-with-sword-remake L7).
+- **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
+- Kept: resolution presets, game-file overlays, the GPU-hang watchdog, the dispatch and texel-fetch clamps, damaged-file substitutes.
+- Removed, as upstream rewrote the code under them: GreenKid's own chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
 
 ## What's new in 0.3.0
 
