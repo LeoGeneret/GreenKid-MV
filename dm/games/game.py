@@ -220,8 +220,6 @@ def header_one(g):
     if not rbm: sys.exit(f'{g.id}: render_base is "<w>x<h> <w>x<h>" (docked, then handheld)')
     upd = g.get('upscaler_default', 'game')   # Bowshot: the Game's upscaler a run takes when DM_UPSCALER is unset, and the launcher's default for it (settings.tsv)
     if upd not in ('game', 'metalfx'): sys.exit(f'{g.id}: upscaler_default must be game or metalfx: {upd}')
-    rsp = g.get('res_presets', 'off')   # Bowshot: the launcher's Resolution row (DM_RES_PRESET, hle_fs.c rom_overlay_set): on when the app's romfs_overlay has potato-<mode>/ folders beside <mode>/ (Ocarina of Time)
-    if rsp not in ('off', 'on'): sys.exit(f'{g.id}: res_presets must be off or on: {rsp}')
     om = g.get('op_mode', 'console')   # the operation mode reported at start (hle_oe.c dm_opmode; DM_OPMODE overrides): console = docked, handheld = touch screen in use (Super Mario Galaxy's pointer)
     if om not in ('console', 'handheld'): sys.exit(f'{g.id}: op_mode must be console or handheld: {om}')
     if pl == 'touch' and om != 'handheld': sys.exit(f'{g.id}: pad_layout touch needs op_mode handheld (the touch screen reaches the game only in handheld mode)')
@@ -269,7 +267,6 @@ def header_one(g):
          *([f'#define DM_GAME_SHARED_FONT_TTF {int(sf == "ttf")}'] if g.get('shared_font', '') else []),   # without the key the host decides by the SDK version (hle_sdk16.c)
          f'#define DM_GAME_PAD_LAYOUT {("simple", "full", "touch").index(pl)}',
          f'#define DM_GAME_OPMODE {int(om == "console")}',
-         f'#define DM_GAME_RES_PRESETS {int(rsp == "on")}',
          f'#define DM_GAME_UPSCALER_DEFAULT {q(upd)}',
          f'#define DM_GAME_RENDER_SCALE_MIN {rs_lo!r}f', f'#define DM_GAME_RENDER_SCALE_MAX {rs_hi!r}f', f'#define DM_GAME_RENDER_SCALE_STEP {rs_st!r}f',
          f'#define DM_GAME_RENDER_SCALE_DEFAULT {rsd!r}f',

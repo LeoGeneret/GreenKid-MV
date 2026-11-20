@@ -23,8 +23,6 @@ case "${1:-}" in
   *) echo 'Usage: bowshot_build.sh --doctor | --build <game-folder>'; exit 2 ;;
 esac
 GAME_DIR="${1:?Choose a folder containing your own game dump}"
-# The resolution (Normal, Potato or the Render scale slider) is chosen in the game app's launcher window at each start: both overlays are packed. An older
-# second argument (normal | performance) is accepted and ignored
 [[ -d "$GAME_DIR" ]] || { echo 'ERROR: The game folder does not exist.'; exit 2; }
 GAME_DIR="$(cd "$GAME_DIR" && pwd -P)"
 if git -C "$GAME_DIR" rev-parse --show-toplevel >/dev/null 2>&1; then
@@ -57,15 +55,13 @@ BUILD_LOG="$PRIVATE_DIR/build.log"
 printf 'Private outputs: %s\nEngine revision: %s\n' "$PRIVATE_DIR" "$REVISION"
 cd "$ENGINE_DIR"
 "$PYTHON" scripts/build_ipa_from_nsp.py "$GAME_DIR" --platform mac --work-dir "$WORK_DIR" --keep-extracted --progress "${BOWSHOT_PROGRESS:-lines}" 2>&1 | tee "$BUILD_LOG"
-# The second part (the resolution presets, then the game app itself) is one step of its own in the builder window: the engine numbers its stages afresh
+# The second part (the game app) is one step of its own in the builder window: the engine numbers its stages afresh
 if [[ "${BOWSHOT_PROGRESS:-}" == json ]]; then echo '{"ev": "bowshot_part", "name": "Game app"}'; fi
 ENV_FILE="$PRIVATE_DIR/runtime.env"
 printf '# Local settings for the app built from your dump\n' > "$ENV_FILE"
 if grep -q 'game profile: 0400486024DEC000' "$BUILD_LOG"; then
   IMAGE="$WORK_DIR/extract/v131072/RomFS.img"
   [[ -f "$IMAGE" ]] || { echo 'ERROR: The supported Ocarina of Time v131072 RomFS image was not found.'; exit 1; }
-  "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/handheld" 0.666667 - flat
-  "$PYTHON" scripts/oot_res_overlay.py "$IMAGE" "$WORK_DIR/extract/v131072/romfs_overlay/potato-handheld" 0.75 - flat
   # Fixed for every run (an env file's values are shown locked in the settings window). Frame rate, Display mode and Game's upscaler stay the player's: their
   # defaults are the profile's (60 fps, a window, MetalFX)
   cat >> "$ENV_FILE" <<'SETTINGS'

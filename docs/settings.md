@@ -31,13 +31,11 @@ On a Mac, a game checked at that speed (Fire Emblem Fortune's Weave, Mario & Lui
 
 Off, the default, keeps the 3D picture at full size. On lets the game lower its resolution when frames run heavy and raise it again when they fit, as on the Switch: steadier frame rate, at times a softer picture. Only games whose resolution control the app can hold offer it (NieR:Automata, Ocarina of Time).
 
-### Resolution
-
-Bowshot, Ocarina of Time only. **Normal** renders the 3D picture at 1280×720 handheld (1951×1098 docked). **Potato** is the game's lighter mode: 960×540 shown at 720p, for the coolest and longest-lasting play. **Render scale** fixes the 3D size with the **Render scale** slider, which is drawn only with this choice; Potato (50 %), Normal (67 %) and Native (100 %) are written under it. ⌘= and ⌘- change it while you play ([The View menu](#the-view-menu)).
-
 ### Render scale
 
 The size of the 3D picture, from 50 to 100 %. Below 100 % the size is fixed there and the game's own dynamic resolution is off; 100 % keeps the game's own. Lower can be lighter on the GPU but is blurrier; the HUD and text keep their sharpness. Only games the app can scale offer it.
+
+Bowshot, Ocarina of Time: the slider moves in twelfths of the output, each step a whole 16:9 size, with **Potato** (50 %, 960×540 handheld), **Normal** (67 %, 1280×720, the default) and **Native** (100 %, 1920×1080) written under it. ⌘= and ⌘- change it while you play ([The View menu](#the-view-menu)); the settings window lists those shortcuts under **While you play**.
 
 Hades II goes up to 300 %: it renders its whole picture, the HUD and text included, at 1280x720 docked and handheld, and above 100 % it renders larger instead of being scaled up: 150 % is 1920x1080, 200 % 2560x1440, 300 % 3840x2160. Sharper on a large screen or window, at more GPU time (about 2.5 times the GPU time at 200 % on an Apple M6); on a small screen the difference is slight. [Its note](../dm/games/0100A00019DE0000/README.md#rendering) has the measurements.
 
@@ -253,7 +251,7 @@ Turn off **Show this window at launch** to start the game at once with your choi
 
 ### The View menu
 
-Bowshot, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Show Metal HUD** (⌥⌘P) shows or hides Apple's Metal Performance HUD over the game, with its frame-time graph, and keeps the choice as [Performance HUD](#performance-hud)'s for the next start. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame, while **Resolution** is **Render scale**, and keep the new value as your choice for the next start.
+Bowshot, while you play: **Show Performance Panel** (⌘P) shows, at the window's top left, the Mac (model, macOS, chip, memory and GPU), the frames shown a second, the frame time, the GPU time, the 3D size with its Render scale step and the upscaler. The app remembers whether it is shown. **Show Metal HUD** (⌥⌘P) shows or hides Apple's Metal Performance HUD over the game, with its frame-time graph, and keeps the choice as [Performance HUD](#performance-hud)'s for the next start. **Increase Render Scale** (⌘=) and **Decrease Render Scale** (⌘-) move the Render scale one step at the next frame and keep the new value as your choice for the next start.
 ## Cloud saves
 
 The Mac app and the iPhone app of one game can share a save through iCloud Drive. Choose the same iCloud Drive folder on both: **Cloud saves** › **Choose a folder…** in the Mac settings window, and **Cloud saves** in the iPhone launcher (any folder, for instance one named **nxnative Saves**). Each game keeps one file there, `<title ID>/save.dmsync`, which holds the whole save.

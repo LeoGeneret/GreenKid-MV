@@ -79,7 +79,7 @@ def dynamic_resolution(ctx):
 # the game came under load. Two stubs: at the controller's answer (main+0x31d3ee4, ubfx of its status byte) a host scale below 1.0 that is not the stored one makes the status 0, so
 # that frame recomputes the sizes; at the store the host scale replaces the game's (seedds' fixed form of #1497's ceiling). The scale is then fixed and the dynamic resolution off;
 # 0, unset or over 1.0 run the game's own code; 1.0 itself is fixed at the full base (this game's slider, game.tsv render_scale). Registers and flags are kept but x8 (the status, as the game reads it next) and s0 (dead after the store: main+0x31d3f84 reloads it).
-# Bowshot: the loader writes 0 there unless the launcher's Resolution is Render scale (DM_RES_PRESET=2), so the Normal / Potato presets keep the game's own levels
+# Bowshot: the loader writes the launcher's Render scale there (DM_RENDER_SCALE, else the profile's render_scale_default: 2/3, Normal)
 # The scale is a fraction of the output (the size loop's cap at main+0x31d3fe8 is skipped on this path, bit 0x13 of +0xe20): docked, 0.75 is the game's usual 1920x1080 and 0.5
 # draws 1280x720, 0.9 2328x1310. The game picks its NDSR network by the ratio, and nvn_mtl.m's DM_NDSR replacement takes whichever follows the chain's third dispatch
 _scale_status, _scale_store = 0x31d3ee4, 0x31d3f48

@@ -142,6 +142,13 @@ struct LauncherView: View {
             Form {
                 settingSections(basic: true)
                 if m.values["DM_MIC"] == "1" { MicrophoneDevicePicker() }
+                Section("While you play") {   // Bowshot: the game window's View menu (front_mac.m)
+                    if m.settings.contains(where: { $0.env == "DM_RENDER_SCALE" }) {
+                        LabeledContent("Render scale up / down") { Text("⌘=   ⌘−").monospaced().foregroundStyle(.secondary) }
+                    }
+                    LabeledContent("Performance panel") { Text("⌘P").monospaced().foregroundStyle(.secondary) }
+                    LabeledContent("Metal HUD") { Text("⌥⌘P").monospaced().foregroundStyle(.secondary) }
+                }
                 CloudSavesSection()
                 Section {
                     DisclosureGroup("Advanced settings", isExpanded: $advanced) {}

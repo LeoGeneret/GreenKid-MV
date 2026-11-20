@@ -369,22 +369,22 @@ static void install_fps_state(module_t *m) {
 }
 // Bowshot: the render scale while the game runs (front_mac.m's View menu, ⌘= / ⌘-; its performance panel). A render-scale stub reads state +0x10 at every frame and asks the
 // game for new 3D sizes when it differs from the stored scale (Ocarina of Time's patches.py render_scale), so a new value there takes effect at the next frame, as the game's own
-// dynamic resolution does. Steps follow the profile's slider (game.tsv render_scale, the header's DM_GAME_RENDER_SCALE_*); a game with the Resolution presets steps only while its
-// Resolution is Render scale (DM_RES_PRESET=2, see dm_fps_state_apply). Another game's stub may read the value at other moments only: the change then waits for one
+// dynamic resolution does. Steps follow the profile's slider (game.tsv render_scale, the header's DM_GAME_RENDER_SCALE_*). Another game's stub may read the value at
+// other moments only: the change then waits for one
 #ifndef DM_GAME_RENDER_SCALE_MIN
 #define DM_GAME_RENDER_SCALE_MIN 0.5f
 #define DM_GAME_RENDER_SCALE_MAX 1.0f
 #define DM_GAME_RENDER_SCALE_STEP 0.05f
 #endif
-// 1: steps can be taken, *now the scale in use (0: the game's own size); 0: no render-scale stub in this game; -1: the Resolution is a preset, not Render scale
+#ifndef DM_GAME_RENDER_SCALE_DEFAULT
+#define DM_GAME_RENDER_SCALE_DEFAULT 1.0f
+#endif
+// 1: steps can be taken, *now the scale in use (0: the game's own size); 0: no render-scale stub in this game
 int dm_render_scale_state(float *now) {
     if (now) *now = 0;
     if (!dm_fps_state || !g_render_scale_stub) return 0;
     uint32_t bits = __atomic_load_n((uint32_t *)(dm_fps_state + 0x10), __ATOMIC_RELAXED); float v; memcpy(&v, &bits, sizeof v);
     if (now) *now = v > 0 && v <= g_render_scale_max ? v : 0;
-#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
-    { const char *rp = getenv("DM_RES_PRESET"); if (!rp || atoi(rp) != 2) return -1; }
-#endif
     return 1;
 }
 // One step up (dir 1) or down (-1) of the profile's slider, held to its range, written for the stub. No setenv: game threads read the environment while this runs on the main
@@ -414,13 +414,12 @@ void dm_fps_state_apply(void) {
     // Render scale of the 3D views (the stubs at Tears of the Kingdom's main+0xd5cc0, Breath of the Wild's main+0x1266880, Hades II's render size): 1.0 keeps the game's own size
     // and dynamic resolution; another factor fixes the size at that fraction (DM_RENDER_SCALE, 0.5 to the stub's largest scale: 1.0, or above for a stub that also raises it,
     // Hades II's 3.0). Independent of the frame step: written at target 0 too
-    const char *rs = getenv("DM_RENDER_SCALE"); float sc = 1.0f, hi = g_render_scale_max;
+    // Bowshot: unset, the profile's render_scale_default (1.0 for a game without one; Ocarina of Time's Normal step, 2/3): the launcher's default, also with its window off
+    const char *rs = getenv("DM_RENDER_SCALE"); float sc = DM_GAME_RENDER_SCALE_DEFAULT, hi = g_render_scale_max;
+    if (!(sc >= 0.5f && sc <= hi)) sc = 1.0f;
     if (rs) { char *end; sc = strtof(rs, &end); if (end == rs || *end || !(sc >= 0.5f && sc <= hi)) { LOG("[RED] DM_RENDER_SCALE=%s: must be 0.5 to %.1f; keeping the game's size", rs, hi); sc = 1.0f; } else LOG("%s: 3D views rendered at %.2f of the game's size (DM_RENDER_SCALE)", g_fps_mod, sc); }
-#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
-    // Bowshot: a game with the Resolution presets (Ocarina of Time) takes the render scale only when its Resolution is Render scale (DM_RES_PRESET=2); otherwise 0, which its
-    // stub reads as unset (patches.py render_scale), so the Normal / Potato overlay's levels stay the game's own. 1.0 would fix the full size and undo them
-    { const char *rp = getenv("DM_RES_PRESET"); if (!rp || atoi(rp) != 2) { if (rs && sc != 1.0f) LOG("DM_RENDER_SCALE=%s left out: the Resolution preset is not Render scale (DM_RES_PRESET=2)", rs); sc = 0.0f; } }
-#endif
+    // Bowshot: a value within a thousandth of a step of the profile's slider is that step (the launcher writes 4 decimals: 0.6667 is the twelfth 2/3, 1280x720, not 1280.06)
+    { float k = roundf((sc - DM_GAME_RENDER_SCALE_MIN) / DM_GAME_RENDER_SCALE_STEP), g = DM_GAME_RENDER_SCALE_MIN + k * DM_GAME_RENDER_SCALE_STEP; if (sc != g && fabsf(sc - g) < 1e-3f) sc = g; }
     memcpy(dm_fps_state + 0x10, &sc, sizeof sc);
     // The game's own dynamic resolution, for builds whose stubs read it (the DYNAMIC_RESOLUTION capability of a frame step stub: Ocarina of Time's level function): 1 lets it
     // run, 0 (the default) holds full resolution. Builds without such a stub ignore the field

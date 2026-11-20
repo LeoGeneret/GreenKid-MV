@@ -819,7 +819,7 @@ static void cheats_open_folder(void) {
 
 // ---------- Bowshot: the View menu: the performance panel (⌘P) and the render scale while the game runs (⌘= / ⌘-) ----------
 // The panel, at the window's top left over the game: the frames shown a second, the mean frame time, the GPU time of the last frames (mtl_gpu_ms), the 3D size and its Render scale
-// step (named from the profile's marks: Potato, Normal, Native), the Resolution preset and the game's upscaler. A step of the render scale (loader.c dm_render_scale_step) shows it for
+// step (named from the profile's marks: Potato, Normal, Native) and the game's upscaler. A step of the render scale (loader.c dm_render_scale_step) shows it for
 // 3 s when it is hidden, and is kept as the launcher's choice (launcher.DM_RENDER_SCALE, as the settings window saves it) for the next start. Shown or not is kept too
 #ifndef DM_GAME_RENDER_SCALE_MARKS   // a header from game.py before these keys
 #define DM_GAME_RENDER_SCALE_MARKS ""
@@ -847,13 +847,6 @@ static NSString *perf_mark(float v) {   // the profile's name for a scale (rende
         if (kv.count == 2 && fabs(kv[0].doubleValue - v) < 0.001) return kv[1];
     }
     return nil;
-}
-static float perf_mark_value(NSString *name) {   // the scale the profile names so (render_scale_marks), 0 without one
-    for (NSString *m in [@(DM_GAME_RENDER_SCALE_MARKS) componentsSeparatedByString:@","]) {
-        NSArray<NSString *> *kv = [m componentsSeparatedByString:@"="];
-        if (kv.count == 2 && [kv[1] isEqualToString:name]) return (float)kv[0].doubleValue;
-    }
-    return 0;
 }
 static NSString *perf_size(float v) {   // the 3D size at scale v for the console mode, "1280×720", or nil without the profile's render_base
     int dock = dm_opmode() == 1, w = dock ? DM_GAME_RENDER_BASE_DOCKED_W : DM_GAME_RENDER_BASE_HANDHELD_W, h = dock ? DM_GAME_RENDER_BASE_DOCKED_H : DM_GAME_RENDER_BASE_HANDHELD_H;
@@ -903,13 +896,6 @@ static NSString *perf_resolution(void) {   // the line on the 3D size
         NSString *size = perf_size(v), *name = perf_mark(v);
         return [NSString stringWithFormat:@"3D %@%ld %%%@", size ? [size stringByAppendingString:@"  "] : @"", lround(v * 100), name ? [@" · " stringByAppendingString:name] : @""];
     }
-#if defined(DM_GAME_RES_PRESETS) && DM_GAME_RES_PRESETS
-    if (r == -1) {   // a preset: its name, and its 3D size handheld where the profile marks that size on the slider (docked, the overlay's own size differs from the mark)
-        const char *p = getenv("DM_RES_PRESET"); NSString *name = p && (atoi(p) == 1 || !strcmp(p, "potato")) ? @"Potato" : @"Normal";
-        float mv = perf_mark_value(name); NSString *size = mv > 0 && dm_opmode() != 1 ? perf_size(mv) : nil;
-        return [NSString stringWithFormat:@"3D %@%@ preset (⌘= / ⌘- need Render scale)", size ? [size stringByAppendingString:@" · "] : @"", name];
-    }
-#endif
     return @"3D: the game's own size";
 }
 @interface DmPerfPanel : NSObject <NSMenuItemValidation>

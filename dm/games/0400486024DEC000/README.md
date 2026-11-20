@@ -110,7 +110,7 @@ From the same Kakariko save, walk into Hyrule Field and continue towards Castle 
 ## Render scale
 
 - Bowshot, from kid-with-sword-remake (`8fdae9db`): the stub `render_scale` in [`patches.py`](patches.py) (v131072) reads the frame step state's `+0x10` at every frame and, when it differs from the stored scale, asks the game for new 3D sizes, so a new value takes effect at the next frame. 0 leaves the game's own size; 1.0 fixes the full size. kid-with-sword-remake's dynamic floor at `+0x2a0` is not taken: the launcher's Dynamic resolution is off by default here.
-- The launcher offers it only with **Resolution: Render scale** (`DM_RES_PRESET=2`); under the Normal and Potato presets the loader writes 0 (`loader.c` `dm_fps_state_apply`), so the RomFS overlay's levels stay the game's own. The slider (`game.tsv` `render_scale`) moves in twelfths of the output, 1920x1080 handheld and 2560x1440 docked, so every step is a whole 16:9 size: 0.5 = 960x540 (Potato's 3D size), 0.667 = 1280x720 (Normal's handheld), 1.0 = the output.
+- The launcher's Render scale row is the 3D size, on Normal (2/3, `render_scale_default 0.6667`) unless the player moves it; with no choice in the environment the loader writes that default (`loader.c` `dm_fps_state_apply`), and a value within a thousandth of a step is that step (0.6667 is 1280x720, not 1280.06). The slider (`game.tsv` `render_scale`) moves in twelfths of the output, 1920x1080 handheld and 2560x1440 docked: 0.5 = 960x540, 0.6667 = 1280x720, 1.0 = the output.
 - While the game runs, ⌘= / ⌘- step it (`loader.c` `dm_render_scale_step`, `front_mac.m`'s View menu) and ⌘P shows the size in the performance panel. Not measured on the player's Mac yet: the GPU time at each step is open.
 
 ## Memory

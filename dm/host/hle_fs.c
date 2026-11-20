@@ -177,25 +177,6 @@ static int img_path(const char *p, int *mi, int64_t *k) {
     }
     return 0;
 }
-// DM_ROMFS_OVERLAY's folders, each preceded by its subfolder for the console mode (docked/ or handheld/) when it has one: game file replacements that differ by mode
-// (Ocarina of Time's resolution table: 1280x720 handheld, 1920x1080 docked). Taken when the RomFS mounts, so a later change of the operation mode does not swap files the game already read
-__attribute__((weak)) int dm_opmode(void) { return 0; }   // hle_oe.c's (the console mode); the file-system tests link no hle_oe.c: handheld
-static void rom_overlay_set(char *dst, size_t n, const char *env) {
-    char *roots = strdup(env); if (!roots) die("rom overlay allocation failed");
-    const char *mode = dm_opmode() == 1 ? "docked" : "handheld"; char *save = NULL; dst[0] = 0;
-    // DM_RES_PRESET=1 (the launcher's Resolution: Potato): potato-<mode>/ in place of <mode>/ where a folder has it (Ocarina of Time: 0.75 of the base, with the graphics scale
-    // tier 2 that hle_oe.c answers for Potato: 960x540 into a 1280x720 frame, against Normal's 1280x720 into 1920x1080), for a steadier frame rate on a hot phone; 0 (Normal,
-    // the default) or a folder without it keeps <mode>/
-    const char *pe = getenv("DM_RES_PRESET"); int potato = pe && (atoi(pe) == 1 || !strcmp(pe, "potato"));
-    int fixed = pe && atoi(pe) == 2;   // Render scale: no <mode>/ resolution folder, the game's own levels with the render-scale stub fixing the size (loader.c, patches.py render_scale)
-    for (char *root = strtok_r(roots, ":", &save); root; root = strtok_r(NULL, ":", &save)) {
-        char sub[1100]; struct stat st; snprintf(sub, sizeof sub, "%s/potato-%s", root, mode);
-        if (!potato || stat(sub, &st) || !S_ISDIR(st.st_mode)) snprintf(sub, sizeof sub, "%s/%s", root, mode);
-        if (!fixed && !stat(sub, &st) && S_ISDIR(st.st_mode)) { if (dst[0]) strlcat(dst, ":", n); strlcat(dst, sub, n); LOG("fs rom overlay: %s for the %s mode%s", sub, mode, potato ? " (resolution preset Potato)" : ""); }
-        if (dst[0]) strlcat(dst, ":", n); strlcat(dst, root, n);
-    }
-    free(roots);
-}
 static void save_old_names(const char *from, const char *to);
 static Result mount_ex(const char *name, const char *dir, int ro, int txn) {
     pthread_once(&g_txn_lock_once, txn_locks_init);
@@ -215,7 +196,7 @@ static Result mount_ex(const char *name, const char *dir, int ro, int txn) {
     atomic_store(&g_mnt[g_nmnt].poison, 0);
     atomic_store(&g_mnt[g_nmnt].first_write_ns, 0);
     const char *overlay = !strcmp(name, "rom") ? getenv("DM_ROMFS_OVERLAY") : NULL;
-    if (overlay) rom_overlay_set(g_mnt[g_nmnt].overlay, sizeof g_mnt[0].overlay, overlay);
+    if (overlay) strlcpy(g_mnt[g_nmnt].overlay, overlay, sizeof g_mnt[0].overlay);
     // The transaction directory cannot be set up (leftovers cannot be cleared / clone failed, which really happens on a full disk): do not exit; mount the committed directory read-only -- saves still read, every write fails, commits are no-ops, the committed version is untouched, and the front end is told
     // (each of these three failures used to call die: with the phone's storage full the game exited as soon as it mounted its saves)
     int txn_err = 0, k = 0;
@@ -572,7 +553,7 @@ HLE_FORCE("_ZN2nn2fs8MountRomEPKcPvm", "fsp-srv; rom → host RomFS directory", 
     if (r == RES_OK && overlay) {
         PATH_LOCK();
         for (int i = 0; i < g_nmnt; i++) if (mnt_named(&g_mnt[i], name)) {
-            rom_overlay_set(g_mnt[i].overlay, sizeof g_mnt[i].overlay, overlay); break;   // the console mode's subfolder, potato-<mode>/ with DM_RES_PRESET=1
+            strlcpy(g_mnt[i].overlay, overlay, sizeof g_mnt[i].overlay); break;
         }
     }
     return r;

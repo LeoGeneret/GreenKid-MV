@@ -170,7 +170,7 @@ final class BuilderDelegate: NSObject, NSApplicationDelegate, NSWindowDelegate {
         switch ev {
         case "bowshot_part":   // the second part: one step of its own, after the first part's stages
             appPart = true; appStart = Date()
-            stage = (firstStages + 1, firstStages + 1, e["name"] as? String ?? "Game app", "resolution presets")
+            stage = (firstStages + 1, firstStages + 1, e["name"] as? String ?? "Game app", "preparing")
             inner = (0, 0, "")
             bar.isIndeterminate = true; bar.startAnimation(nil); bar.isHidden = false; stepLabel.isHidden = false
             stepLabel.stringValue = stepTitle()

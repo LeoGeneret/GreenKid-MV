@@ -161,13 +161,13 @@ class LauncherSettingsTests(unittest.TestCase):
                 profile = type('Profile', (), {'id': BOTW, 'get': lambda self, key, default='', bad=bad: bad})()
                 with self.assertRaises(SystemExit): settings.render_base(profile)
 
-    def test_ocarina_render_scale_is_a_resolution_choice_with_named_steps(self):   # Bowshot: Normal / Potato / Render scale, the slider in twelfths with its marks
+    def test_ocarina_render_scale_has_named_steps(self):   # Bowshot: the slider in twelfths with its marks, on Normal by default (no Resolution presets)
         with tempfile.TemporaryDirectory() as tmp:
             (Path(tmp) / 'main.fixups.tsv').write_text('# RENDER_SCALE\t1\n')
             rows = {s['env']: s for s in settings.build('0400486024DEC000', tmp, Path(tmp) / 'control.nacp')['settings']}
-        self.assertEqual([o[0] for o in rows['DM_RES_PRESET']['options']], ['0', '1', '2'])
+        self.assertNotIn('DM_RES_PRESET', rows)
         rs = rows['DM_RENDER_SCALE']
-        self.assertEqual((rs['min'], rs['max'], rs['needs']), (0.5, 1.0, 'DM_RES_PRESET=2'))
+        self.assertEqual((rs['min'], rs['max'], rs['default'], 'needs' in rs), (0.5, 1.0, '0.6667', False))
         marks = {round(float(v), 4): name for v, name in rs['marks']}
         self.assertEqual(marks, {0.5: 'Potato', 0.6667: 'Normal', 1.0: 'Native'})
         for k, name in ((0, 'Potato'), (2, 'Normal'), (6, 'Native')):   # each mark is a step of the slider, and a whole 16:9 size of 1920x1080

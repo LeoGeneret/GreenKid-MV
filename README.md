@@ -15,7 +15,7 @@ Bowshot packages other developers’ native-execution work with a small Mac laun
 
 **Experimental preview.** This distribution is focused on the Switch 2 Ocarina of Time dump with update `v131072`. The engine is upstream nxnative's code as of 21 Nov 2026 (`seedds/nxnative` main `8c94bd1e`) plus Bowshot's additions and changes from kid-with-sword-remake, pinned as `bowshot-0.1.0-nxnative-8c94bd1e`; it does not silently track upstream updates. See [What's new](#whats-new).
 
-It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, the Normal / Potato resolution presets with a Render scale slider, and settings tuned to hold 60 FPS without overheating a fanless Mac. It is still a preview: results on other Macs, dumps and areas have not been certified.
+It includes upstream's Ocarina of Time lighting, terrain and stability fixes, MetalFX for the game's own upscaler, a Render scale slider for the 3D size, and settings tuned to hold 60 FPS without overheating a fanless Mac. It is still a preview: results on other Macs, dumps and areas have not been certified.
 
 ## Download
 
@@ -29,11 +29,11 @@ The first build converts every shader (the shader chain version changed).
 - **Upscaling:** MetalFX now draws Ocarina of Time's own upscaler networks through upstream's code (every NDSR pack, `_vr` packs included; about 1.4 ms less GPU a frame measured upstream on an M4 Pro with **Game's upscaler: MetalFX**), reads the game's texture in its own format, and takes the game's bias mask as its reactive mask.
 - **Performance:** pipelines prewarmed in the Mac app, pipeline archives opened 3-6x faster, background pipeline lookups, unused border corrections compiled out of shaders, steadier frame pacing after a late frame, and a shader build that uses every core.
 - **Area changes:** render targets that were drawn over are released a few at a time instead of all at once, which took a 120-250 ms frame once a second (kid-with-sword-remake L6.3).
-- **Render scale slider** (launcher, Game → Resolution: **Render scale**): the 3D size from 50 % to 100 % of 1920×1080 in twelfths, each step a whole 16:9 size, with **Potato** (960×540), **Normal** (1280×720) and **Native** (1920×1080) marked on it. Normal and Potato stay as they were. Ocarina of Time v131072 only (the render-scale stub from kid-with-sword-remake).
-- **In game:** **⌥⌘P** shows or hides Apple's Metal HUD (frame-time graph included) without restarting; **⌘P** shows a performance panel (frames a second, frame and GPU time, the 3D size and its step: Potato, Normal, Native) and **⌘= / ⌘-** move the Render scale one step while you play (with Resolution set to Render scale); the step you leave is the next start's. Both are in the game window's **View** menu.
+- **Render scale slider** (launcher, Game → **Render scale**): the 3D size from 50 % to 100 % of 1920×1080 in twelfths, each step a whole 16:9 size, with **Potato** (960×540), **Normal** (1280×720, the default) and **Native** (1920×1080) marked on it. It replaces the earlier Normal / Potato presets and their game-file overlays. Ocarina of Time v131072 only (the render-scale stub from kid-with-sword-remake).
+- **In game:** **⌥⌘P** shows or hides Apple's Metal HUD (frame-time graph included) without restarting; **⌘P** shows a performance panel (frames a second, frame and GPU time, the 3D size and its step: Potato, Normal, Native) and **⌘= / ⌘-** move the Render scale one step while you play; the step you leave is the next start's. All three are in the game window's **View** menu, and the settings window lists them under **While you play**.
 - **Texture Memory Saver** (launcher, Performance, off by default): large compressed textures without their sharpest level, about a quarter less texture memory; slightly softer up close. On kid-with-sword-remake's Mac walk the longest frames went from 2.7 s / 0.5 s to 0.4 s / 0.3 s (kid-with-sword-remake L7).
 - **Microphone** (launcher, Controls, off by default): play the ocarina into your Mac's microphone (upstream #1822).
-- Kept: resolution presets, game-file overlays, the GPU-hang watchdog, the dispatch and texel-fetch clamps.
+- Kept: the GPU-hang watchdog, the dispatch and texel-fetch clamps.
 - Removed as unused by default: the M1/M2 task isolation (`DM_NVN_ISOLATE_TASK`), damaged-file substitutes (`romfs_substitute`, `DM_ROMFS_SUBST`) and the SyncWait fence report.
 - Removed, as upstream rewrote the code under them: the earlier chained-upscaler path, the remembered uniform-conflict answers and a per-draw shortcut (two small CPU savings).
 
@@ -42,7 +42,7 @@ The first build converts every shader (the shader chain version changed).
 - A Mac window for choosing your game folder, with a progress bar for each build step and the full build log one click away.
 - A bundled, pinned engine source snapshot and its existing compiler tools; the launcher contains no playable game.
 - Full local shader and pipeline preparation rather than a reduced first-area shader set.
-- Normal Ocarina rendering at 1280×720, the lighter preset at 960×540 with upscaling, or any Render scale step between 50 % and 100 %.
+- Ocarina's 3D size on any Render scale step between 50 % and 100 %: Normal (1280×720) by default, Potato (960×540) for the lightest.
 - Private build outputs under `Bowshot-local/` in the chosen game folder.
 - Separate writable engine and Python tools under `~/Library/Application Support/Bowshot/`; building does not modify the signed launcher.
 - Content checks and Git ignore rules that keep private game outputs out of source packages.
@@ -107,7 +107,7 @@ Building again later reuses everything that is still valid, so it is much faster
 
 1. Click **Open game folder**. It opens `Bowshot-local` inside your game folder.
 2. Open **Ocarina of Time.app**. The first time, **right-click → Open**, as in step 3. If macOS asks whether the app may access a folder (for example Downloads or Documents), click **Allow**: the game needs it for its files and saves.
-3. A settings window appears before the game starts. Under **Game → Resolution** pick **Normal** (1280×720), **Potato** (960×540) or **Render scale**, a slider with both marked on it; you can change it at every start, no rebuild needed. While playing, **⌥⌘P** shows or hides Apple's Metal HUD, **⌘P** shows or hides the performance panel and, with Resolution set to Render scale, **⌘=** / **⌘-** change it one step at a time (View menu). Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
+3. A settings window appears before the game starts. **Game → Render scale** sets the 3D size, on **Normal** (1280×720) by default, with **Potato** (960×540) and **Native** (1920×1080) marked on the slider; you can change it at every start, no rebuild needed. While playing, **⌘=** / **⌘-** change it one step at a time, **⌘P** shows or hides the performance panel and **⌥⌘P** Apple's Metal HUD (View menu; the settings window lists them under **While you play**). Then play with the **keyboard or a controller**. Xbox, PlayStation and most Bluetooth pads work.
 4. **Quit** with **⌘Q**, or hold the controller's **Home** button for 2 seconds and press **A**. Progress the game hasn't saved is lost, so save in-game first.
 
 Tips for smooth play:
@@ -141,7 +141,7 @@ Tips for smooth play:
 | `Builder files are missing` | Download the full ZIP again from Releases and replace the app. |
 | The app or game won't open ("cannot be opened" / "unidentified developer") | Right-click → **Open**, or **System Settings → Privacy & Security → Open Anyway**. |
 | Black window | Keep the window visible and in front; don't switch to fullscreen. If it stays black, quit and reopen. |
-| Low frame rate | In the game's settings window: **Game's upscaler** MetalFX and **Texture Memory Saver** on; close other apps, plug in power. On Apple GPUs a lower resolution (Potato) saves little. |
+| Low frame rate | In the game's settings window: **Game's upscaler** MetalFX and **Texture Memory Saver** on; close other apps, plug in power. On Apple GPUs a lower Render scale (Potato) saves little. |
 
 Open an issue with your Mac model, macOS version, which Resolution you used, and the game log. Never attach game files, saves or keys.
 
